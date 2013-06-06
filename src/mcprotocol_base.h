@@ -103,35 +103,4 @@ protected:
 } // namespace MC
 
 
-// Реализации вынесем подальше
-void MC::Protocol::CheckIfEnoughBytesToRead(const Buffer& _src, size_t _offset, int _neededNBytes)
-{
-	if(_src.size() - _offset < _neededNBytes)
-		throw Exception_NotEnoughDataToRead();
-}
-
-template<typename T>
-size_t MC::Protocol::ReadInt(const Buffer& _src, size_t _offset, T& _dst)
-{
-	CheckIfEnoughBytesToRead(_src, _offset, sizeof(T));
-	memcpy(&_dst, _src.data() + _offset, sizeof(T));
-	if(sizeof(T) > 1)
-		boost::endian::big_to_native(_dst);
-	return _offset + sizeof(T);
-}
-
-template<class T>
-size_t MC::Protocol::WriteInt(Buffer& _dst, size_t _offset, T _src)
-{
-	if(_offset < 0)
-		_offset = _dst.size();
-
-	boost::endian::native_to_big(_src);
-	_dst.insert(_dst.begin() + _offset, reinterpret_cast<uint8_t*>(&_src), reinterpret_cast<uint8_t*>(&_src) + sizeof(T));
-
-	return _offset + sizeof(T);
-}
-
-
-
 #endif // _MC_PROTOCOL_BASE_H_

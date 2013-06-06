@@ -43,7 +43,8 @@ size_t SlotData::deserialize(const Buffer& _src, size_t _offset)
 {
 	//_pm_checkPacketId(_src);
 
-	_offset = ReadInt(_src, _offset, _pf_itemId);
+	//_offset = ReadInt(_src, _offset, _pf_itemId);
+	_src.readInt16(_pf_itemId, _offset);
 	
 	if(_pf_itemId != -1)
 	{

@@ -1,6 +1,7 @@
 // TODO:
 // Решить, использовать ли обобщённые функции чтения, или оставить их только для буфера.
 // Пока что только для буфера.
+// Does buffer need "current" reading? Removing it will make things simpler.
 
 #ifndef _MC_PROTOCOL_BUFFER_H_ // новая запись по неймспейсам
 #define _MC_PROTOCOL_BUFFER_H_
@@ -58,22 +59,26 @@ private:
 
 	// методы
 	inline void _pm_checkIfEnoughBytesToRead(int _neededNBytes, size_t _offset);
+	inline bool _pm_checkIfEnoughBytesToRead_noEx(int _neededNBytes, size_t _offset);
 	// Checks if offset equals npos (this means user is reading current variable, not
 	// from specified position), and fixes offset if needed.
-	//inline bool _pm_checkAndFixReadingCurrent(size_t& _offset);
-	//inline bool _pm_checkAndFixWritingCurrent(size_t& _offset);
 	inline bool _pm_checkAndFixNposOffset(size_t& _offset, size_t _newVal);
+	inline bool _pm_checkAndFixNposOffset(size_t _offset);
 };
 
 
 
 void Buffer::_pm_checkIfEnoughBytesToRead(int _neededNBytes, size_t _offset)
 {
-	//if(_offset == npos)
-	//	_offset = _pf_readOffset;
-
 	if(_pf_buffer.size() - _offset < _neededNBytes)
 		throw Exception_NotEnoughDataToRead();
+}
+
+bool Buffer::_pm_checkIfEnoughBytesToRead_noEx(int _neededNBytes, size_t _offset)
+{
+	//if(_pf_buffer.size() - _offset < _neededNBytes)
+		//throw Exception_NotEnoughDataToRead();
+	return _pf_buffer.size() - _offset >= _neededNBytes;
 }
 
 bool Buffer::_pm_checkAndFixNposOffset(size_t& _offset, size_t _newVal)
@@ -85,6 +90,12 @@ bool Buffer::_pm_checkAndFixNposOffset(size_t& _offset, size_t _newVal)
 	}
 	else
 		return false;
+}
+
+bool Buffer::_pm_checkAndFixNposOffset(size_t _offset)
+{
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 }
 
 

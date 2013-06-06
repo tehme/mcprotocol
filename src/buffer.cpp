@@ -1,3 +1,7 @@
+// Новая суть чтения.
+// Если передаётся npos, то читать по readOffset.
+// Если передаётся сдвиг, то запомнить его в readOffset, чтобы потом можно было делать по npos.
+
 #include "buffer.h"
 
 namespace MC
@@ -14,19 +18,16 @@ size_t Buffer::skipBytes(size_t _nBytes, size_t _offset)
 
 size_t Buffer::readInt8(int8_t&	_dst, size_t _offset)
 {
-	if(_offset == npos)
-		_offset = _pf_readOffset;
+	//_pm_checkAndFixNposOffset(_offset, _pf_readOffset);
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-	_pm_checkIfEnoughBytesToRead(1, _offset);
+	_pm_checkIfEnoughBytesToRead(1, _pf_readOffset);
 
-	_dst = _pf_buffer[_offset];
+	_dst = _pf_buffer[_pf_readOffset];
+	_pf_readOffset += sizeof(_dst);
 
-	if(_offset == _pf_readOffset)
-		_pf_readOffset += sizeof(_dst);
-
-	_offset += sizeof(_dst);
-
-	return _offset;
+	return _pf_readOffset;
 }
 
 size_t Buffer::readBool(bool& _dst, size_t _offset)
@@ -37,126 +38,106 @@ size_t Buffer::readBool(bool& _dst, size_t _offset)
 // int16 .. int64, да и float double можно зашаблонить
 size_t Buffer::readInt16(int16_t& _dst, size_t _offset)
 {
-	if(_offset == npos)
-		_offset = _pf_readOffset;
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _offset);
+	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _pf_readOffset);
 
-	//_dst = *reinterpret_cast<int16_t*>(_pf_buffer.data() + _offset);
-	memcpy(&_dst, _pf_buffer.data() + _offset, sizeof(_dst));
+	_dst = *reinterpret_cast<int16_t*>(_pf_buffer.data() + _pf_readOffset);
 	boost::endian::big_to_native(_dst);
 
-	if(_offset == _pf_readOffset)
-		_pf_readOffset += sizeof(_dst);
-
-	_offset += sizeof(_dst);
-
-	return _offset;
+	_pf_readOffset += sizeof(_dst);
+	return _pf_readOffset;
 }
 
 size_t Buffer::readInt32(int32_t& _dst, size_t _offset)
 {
-	if(_offset == npos)
-		_offset = _pf_readOffset;
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _offset);
+	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _pf_readOffset);
 
-	memcpy(&_dst, _pf_buffer.data() + _offset, sizeof(_dst));
+	_dst = *reinterpret_cast<int32_t*>(_pf_buffer.data() + _pf_readOffset);
 	boost::endian::big_to_native(_dst);
 
-	if(_offset == _pf_readOffset)
-		_pf_readOffset += sizeof(_dst);
-
-	_offset += sizeof(_dst);
-
-	return _offset;
+	_pf_readOffset += sizeof(_dst);
+	return _pf_readOffset;
 }
 
 size_t Buffer::readInt64(int64_t& _dst, size_t _offset)
 {
-	if(_offset == npos)
-		_offset = _pf_readOffset;
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _offset);
+	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _pf_readOffset);
 
-	memcpy(&_dst, _pf_buffer.data() + _offset, sizeof(_dst));
+	_dst = *reinterpret_cast<int64_t*>(_pf_buffer.data() + _pf_readOffset);
 	boost::endian::big_to_native(_dst);
 
-	if(_offset == _pf_readOffset)
-		_pf_readOffset += sizeof(_dst);
-
-	_offset += sizeof(_dst);
-
-	return _offset;
+	_pf_readOffset += sizeof(_dst);
+	return _pf_readOffset;
 }
 
 size_t Buffer::readFloat(float& _dst, size_t _offset)
 {
-	if(_offset == npos)
-		_offset = _pf_readOffset;
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _offset);
+	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _pf_readOffset);
 
-	memcpy(&_dst, _pf_buffer.data() + _offset, sizeof(_dst));
-	boost::endian::big_to_native(reinterpret_cast<int32_t&>(_dst));
+	_dst = *reinterpret_cast<float*>(_pf_buffer.data() + _pf_readOffset);
+	boost::endian::big_to_native(reinterpret_cast<uint32_t&>(_dst));
 
-	if(_offset == _pf_readOffset)
-		_pf_readOffset += sizeof(_dst);
-
-	_offset += sizeof(_dst);
-
-	return _offset;
+	_pf_readOffset += sizeof(_dst);
+	return _pf_readOffset;
 }
 
 size_t Buffer::readDouble(double& _dst, size_t _offset)
 {
-	if(_offset == npos)
-		_offset = _pf_readOffset;
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _offset);
+	_pm_checkIfEnoughBytesToRead(sizeof(_dst), _pf_readOffset);
 
-	memcpy(&_dst, _pf_buffer.data() + _offset, sizeof(_dst));
-	boost::endian::big_to_native(reinterpret_cast<int64_t&>(_dst));
+	_dst = *reinterpret_cast<float*>(_pf_buffer.data() + _pf_readOffset);
+	boost::endian::big_to_native(reinterpret_cast<uint64_t&>(_dst));
 
-	if(_offset == _pf_readOffset)
-		_pf_readOffset += sizeof(_dst);
-
-	_offset += sizeof(_dst);
-
-	return _offset;
+	_pf_readOffset += sizeof(_dst);
+	return _pf_readOffset;
 }
 
 size_t Buffer::readString16(String16& _dst, size_t _offset)
 {
-
-	// If we have _offset == npos and leave it to readInt16,
-	// it will modify _pf_readOffset, and if string is not
-	// fully received, there will be problems.
-	bool readingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_readOffset);
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
 	int16_t strLen;
-	_offset = readInt16(strLen, _offset);
 
-	_dst.clear();
-	_dst.reserve(strLen);
+	_pm_checkIfEnoughBytesToRead(sizeof(strLen), _pf_readOffset);
+	readInt16(strLen, _offset); // <-- readOffset += 2;
+
+	// Штука спорной нужности, так как откатывать всё это придётся ловцу исключения.
+	// Но на всякий случай сделаем так.
+	if(!_pm_checkIfEnoughBytesToRead_noEx(strLen, _pf_readOffset))
+	{
+		_pf_readOffset -= sizeof(strLen);
+		throw Exception_NotEnoughDataToRead();
+	}
 
 	int16_t ch;
 	for(int i = 0; i < strLen; ++i)
 	{
-		_offset = readInt16(ch, _offset);
+		readInt16(ch);
 		_dst.push_back(ch);
 	}
 
-	// Fixing readOffset if we were reading current var.
-	if(readingCurrent)
-		_pf_readOffset = _offset;
+	return _pf_readOffset;
 
-	return _offset;
 }
 
 size_t Buffer::readByteArray(ByteArray& _dst, size_t _size, size_t _offset)
 {
-	bool readingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_readOffset);
+
 
 	_pm_checkIfEnoughBytesToRead(_size, _offset);
 
