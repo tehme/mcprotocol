@@ -137,18 +137,18 @@ size_t Buffer::readString16(String16& _dst, size_t _offset)
 
 size_t Buffer::readByteArray(ByteArray& _dst, size_t _size, size_t _offset)
 {
+	if(_offset != npos)
+		_pf_readOffset = _offset;
 
-
-	_pm_checkIfEnoughBytesToRead(_size, _offset);
+	_pm_checkIfEnoughBytesToRead(_size, _pf_readOffset);
 
 	_dst.clear();
 	_dst.reserve(_size);
 	std::copy(_pf_buffer.begin() + _offset, _pf_buffer.begin() + _offset + _size, _dst.begin());
 
-	if(readingCurrent)
-		_pf_readOffset = _offset + _size;
+	_pf_readOffset += _size;
 
-	return _offset + _size;
+	return _pf_readOffset;
 }
 
 
