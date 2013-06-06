@@ -154,14 +154,19 @@ size_t Buffer::readByteArray(ByteArray& _dst, size_t _size, size_t _offset)
 
 size_t Buffer::writeInt8(int8_t _src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
-
-	if(writingCurrent)
-		_pf_buffer.push_back(_src);
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
 	else
-		_pf_buffer[_offset] = _src;
+	{
+		_pf_writeOffset = _pf_buffer.size();
+		_pf_buffer.resize(_pf_buffer.size() + 1);
+	}
 
-	return _offset + 1;
+	_pf_buffer[_pf_writeOffset] = _src;
+
+	_pf_writeOffset += 1;
+
+	return _pf_writeOffset;
 }
 
 size_t Buffer::writeBool(bool _src, size_t _offset)
@@ -172,105 +177,126 @@ size_t Buffer::writeBool(bool _src, size_t _offset)
 // Опять полные копии, надо пошаблонить
 size_t Buffer::writeInt16(int16_t _src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
 	boost::endian::native_to_big(_src);
 	uint8_t *pSrc = reinterpret_cast<uint8_t*>(&_src);
 
 	// Топорное решение, поправить
-	if(_offset + sizeof(_src) > _pf_buffer.size())
-		_pf_buffer.resize(_offset + sizeof(_src));
+	if(_pf_writeOffset + sizeof(_src) > _pf_buffer.size())
+		_pf_buffer.resize(_pf_writeOffset + sizeof(_src));
 
-	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _offset);
+	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _pf_writeOffset);
 
-	return _offset + sizeof(_src);
+	return _pf_writeOffset += sizeof(_src);
 }
 
 size_t Buffer::writeInt32(int32_t _src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
 	boost::endian::native_to_big(_src);
 	uint8_t *pSrc = reinterpret_cast<uint8_t*>(&_src);
 
 	// Топорное решение, поправить
-	if(_offset + sizeof(_src) > _pf_buffer.size())
-		_pf_buffer.resize(_offset + sizeof(_src));
+	if(_pf_writeOffset + sizeof(_src) > _pf_buffer.size())
+		_pf_buffer.resize(_pf_writeOffset + sizeof(_src));
 
-	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _offset);
+	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _pf_writeOffset);
 
-	return _offset + sizeof(_src);
+	return _pf_writeOffset += sizeof(_src);
 }
 
 size_t Buffer::writeInt64(int64_t _src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
 	boost::endian::native_to_big(_src);
 	uint8_t *pSrc = reinterpret_cast<uint8_t*>(&_src);
 
 	// Топорное решение, поправить
-	if(_offset + sizeof(_src) > _pf_buffer.size())
-		_pf_buffer.resize(_offset + sizeof(_src));
+	if(_pf_writeOffset + sizeof(_src) > _pf_buffer.size())
+		_pf_buffer.resize(_pf_writeOffset + sizeof(_src));
 
-	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _offset);
+	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _pf_writeOffset);
 
-	return _offset + sizeof(_src);
+	return _pf_writeOffset += sizeof(_src);
 }
 
 size_t Buffer::writeFloat(float _src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
 	boost::endian::native_to_big(reinterpret_cast<uint32_t&>(_src));
 	uint8_t *pSrc = reinterpret_cast<uint8_t*>(&_src);
 
 	// Топорное решение, поправить
-	if(_offset + sizeof(_src) > _pf_buffer.size())
-		_pf_buffer.resize(_offset + sizeof(_src));
+	if(_pf_writeOffset + sizeof(_src) > _pf_buffer.size())
+		_pf_buffer.resize(_pf_writeOffset + sizeof(_src));
 
-	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _offset);
+	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _pf_writeOffset);
 
-	return _offset + sizeof(_src);
+	return _pf_writeOffset += sizeof(_src);
 }
 
 size_t Buffer::writeDouble(double _src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
-	boost::endian::native_to_big(reinterpret_cast<uint64_t&>(_src));
+	boost::endian::native_to_big(reinterpret_cast<uint32_t&>(_src));
 	uint8_t *pSrc = reinterpret_cast<uint8_t*>(&_src);
 
 	// Топорное решение, поправить
-	if(_offset + sizeof(_src) > _pf_buffer.size())
-		_pf_buffer.resize(_offset + sizeof(_src));
+	if(_pf_writeOffset + sizeof(_src) > _pf_buffer.size())
+		_pf_buffer.resize(_pf_writeOffset + sizeof(_src));
 
-	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _offset);
+	std::copy(pSrc, pSrc + sizeof(_src), _pf_buffer.begin() + _pf_writeOffset);
 
-	return _offset + sizeof(_src);
+	return _pf_writeOffset += sizeof(_src);
 }
 
 size_t Buffer::writeString16(String16 _src, size_t _offset)
 {
-	_pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
-	_offset = writeInt16(_src.size(), _offset);
+	writeInt16(_src.size(), _pf_writeOffset);
 	for(int i = 0; i < _src.size(); ++i)
-		_offset = writeInt16(_src[i], _offset);
+		writeInt16(_src[i], _offset);
 
-	return _offset;
+	return _pf_writeOffset;
 }
 
 size_t Buffer::writeByteArray(ByteArray	_src, size_t _offset)
 {
-	bool writingCurrent = _pm_checkAndFixNposOffset(_offset, _pf_buffer.size());
+	if(_offset != npos)
+		_pf_writeOffset = _offset;
+	else
+		_pf_writeOffset = _pf_buffer.size();
 
-	if(_offset + _src.size() > _pf_buffer.size())
-		_pf_buffer.resize(_offset + _src.size());
+	if(_pf_writeOffset + _src.size() > _pf_buffer.size())
+		_pf_buffer.resize(_pf_writeOffset + _src.size());
 
-	std::copy(_src.begin(), _src.end(), _pf_buffer.begin() + _offset);
+	std::copy(_src.begin(), _src.end(), _pf_buffer.begin() + _pf_writeOffset);
 
-	return _offset + _src.size();
+	return _pf_writeOffset += _src.size();
 }
 
 } // namespace Protocol

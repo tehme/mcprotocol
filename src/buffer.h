@@ -56,6 +56,7 @@ private:
 	// Для начала тут будет просто вектор
 	std::vector<uint8_t> _pf_buffer;
 	size_t _pf_readOffset;
+	size_t _pf_writeOffset;
 
 	// методы
 	inline void _pm_checkIfEnoughBytesToRead(int _neededNBytes, size_t _offset);
