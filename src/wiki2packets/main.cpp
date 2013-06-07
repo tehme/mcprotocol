@@ -414,33 +414,43 @@ int main(int argc, char* argv[])
 	//ofs_packets.close();
 
 	// ---- Saving to JSON ----
-	PacketInfo packetInfo = packetsInfo[1];
+	boost::property_tree::ptree packetsJson;
+	boost::property_tree::ptree packetsArray;
 
-	boost::property_tree::ptree packetJson;
-
-	// Data
-	packetJson.put("id", packetInfo.packetId);
-	packetJson.put("name", packetInfo.packetName);
-	packetJson.put("direction", packetInfo.packetDirection);
-	packetJson.put("comment", packetInfo.packetComment);
-
-	// Fields
-	boost::property_tree::ptree array;
-
-	for(int i = 0; i < packetInfo.fields.size(); ++i)
+	BOOST_FOREACH(auto &packetInfo, packetsInfo)
 	{
-		boost::property_tree::ptree field;
-		field.put("type", packetInfo.fields[i].type);
-		field.put("name", packetInfo.fields[i].name);
-		field.put("example", packetInfo.fields[i].example);
-		field.put("comment", packetInfo.fields[i].comment);
+		boost::property_tree::ptree packetJson;
+
+		// Data
+		packetJson.put("id", packetInfo.packetId);
+		packetJson.put("name", packetInfo.packetName);
+		packetJson.put("direction", packetInfo.packetDirection);
+		packetJson.put("comment", packetInfo.packetComment);
+
+		// Fields
+		boost::property_tree::ptree array;
+
+		for(int i = 0; i < packetInfo.fields.size(); ++i)
+		{
+			boost::property_tree::ptree field;
+			field.put("type", packetInfo.fields[i].type);
+			field.put("name", packetInfo.fields[i].name);
+			field.put("example", packetInfo.fields[i].example);
+			field.put("comment", packetInfo.fields[i].comment);
 		
-		array.push_back(std::make_pair("", field));
+			array.push_back(std::make_pair("", field));
+		}
+
+		packetJson.add_child("fields", array);
+
+		packetsArray.push_back(std::make_pair("", packetJson));
 	}
 
-	packetJson.add_child("fields", array);
+	packetsJson.add_child("packets", packetsArray);
 
-	boost::property_tree::write_json("test_field_json.txt", packetJson);
+	//PacketInfo packetInfo = packetsInfo[1];
+
+	boost::property_tree::write_json("test_field_json.txt", packetsJson);
 	
 
 				

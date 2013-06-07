@@ -1,0 +1,2618 @@
+{
+    "packets":
+    [
+        {
+            "id": "0",
+            "name": "Keep Alive",
+            "direction": "Two-Way",
+            "comment": "The server will frequently send out a keep-alive, each containing a random ID. The client must respond with the same packet.\nThe Beta server will disconnect a client if it doesn't receive at least one packet before 1200 in-game ticks, and the Beta client will time out the connection under the same conditions. The client may send packets with Keep-alive ID=0.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Keep-alive ID",
+                    "example": "957759560",
+                    "comment": "Server-generated random id"
+                }
+            ]
+        },
+        {
+            "id": "1",
+            "name": "Login Request",
+            "direction": "Server to Client",
+            "comment": "See [[Protocol Encryption]] for information on logging in.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "1298",
+                    "comment": "The Player's Entity ID"
+                },
+                {
+                    "type": "string",
+                    "name": "Level type",
+                    "example": "default",
+                    "comment": "default, flat, or largeBiomes. level-type in server.properties"
+                },
+                {
+                    "type": "byte",
+                    "name": "Game mode",
+                    "example": "0",
+                    "comment": "0: survival, 1: creative, 2: adventure. Bit 3 (0x8) is the hardcore flag"
+                },
+                {
+                    "type": "byte",
+                    "name": "Dimension",
+                    "example": "0",
+                    "comment": "-1: nether, 0: overworld, 1: end"
+                },
+                {
+                    "type": "byte",
+                    "name": "Difficulty",
+                    "example": "1",
+                    "comment": "0 thru 3 for Peaceful, Easy, Normal, Hard"
+                },
+                {
+                    "type": "byte",
+                    "name": "Not used",
+                    "example": "0",
+                    "comment": "Only 0 observed from vanilla server, was previously world height"
+                },
+                {
+                    "type": "byte",
+                    "name": "Max players",
+                    "example": "8",
+                    "comment": "Used by the client to draw the player list"
+                }
+            ]
+        },
+        {
+            "id": "2",
+            "name": "Handshake",
+            "direction": "Client to server",
+            "comment": "See [[Protocol Encryption]] for information on logging in.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Protocol Version",
+                    "example": "51",
+                    "comment": "As of 1.5.2 the protocol version is 61. See [[Protocol version numbers]] for list."
+                },
+                {
+                    "type": "string",
+                    "name": "Username",
+                    "example": "_AlexM",
+                    "comment": "The username of the player attempting to connect"
+                },
+                {
+                    "type": "string",
+                    "name": "Server Host",
+                    "example": "localhost",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "Server Port",
+                    "example": "25565",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "3",
+            "name": "Chat Message",
+            "direction": "Two-Way",
+            "comment": "The default server will check the message to see if it begins with a '\/'. If it doesn't, the username of the sender is prepended and sent to all other clients (including the original sender). If it does, the server assumes it to be a command and attempts to process it. A message longer than 100 characters will cause the server to kick the client. (As of 1.3.2, the vanilla client appears to limit the text a user can enter to 100 charaters.) This limits the chat message packet length to 203 bytes (as characters are encoded on 2 bytes). Note that this limit does not apply to chat messages sent by the server, which are limited to 32767 characters since 1.2.5. This change was initially done by allowing the client to not slice the message up to 119 (the previous limit), without changes to the server. For this reason, the vanilla server kept the code to cut messages at 119, but this isn't a protocol limitation and can be ignored.\n\nFor more information, see [[Chat]].\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Message",
+                    "example": "&lt;Bob&gt; Hello World!",
+                    "comment": "User input '''must''' be sanitized server-side"
+                }
+            ]
+        },
+        {
+            "id": "4",
+            "name": "Time Update",
+            "direction": "Server to Client",
+            "comment": "Time is based on ticks, where 20 ticks happen every second. There are 24000 ticks in a day, making Minecraft days exactly 20 minutes long.\n\nThe time of day is based on the timestamp modulo 24000. 0 is sunrise, 6000 is noon, 12000 is sunset, and 18000 is midnight.\n\nThe default SMP server increments the time by <code>20<\/code> every second.\n",
+            "fields":
+            [
+                {
+                    "type": "long",
+                    "name": "Age of the world",
+                    "example": "45464654",
+                    "comment": "In ticks; not changed by server commands"
+                },
+                {
+                    "type": "long",
+                    "name": "Time of Day",
+                    "example": "21321",
+                    "comment": "The world (or region) time, in ticks"
+                }
+            ]
+        },
+        {
+            "id": "5",
+            "name": "Entity Equipment",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "0x00010643",
+                    "comment": "Named Entity ID"
+                },
+                {
+                    "type": "short",
+                    "name": "Slot",
+                    "example": "4",
+                    "comment": "Equipment slot: 0=held, 1-4=armor slot (1 - boots, 2 - leggings, 3 - chestplate, 4 - helmet)"
+                },
+                {
+                    "type": "[[Slot_Data|slot]]",
+                    "name": "Item",
+                    "example": "",
+                    "comment": "Item in slot format"
+                }
+            ]
+        },
+        {
+            "id": "6",
+            "name": "Spawn Position",
+            "direction": "Server to Client",
+            "comment": "Sent by the server after login to specify the coordinates of the spawn point (the point at which players spawn at, and which the compass points to). It can be sent at any time to update the point compasses point at.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "117",
+                    "comment": "Spawn X in block coordinates"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "70",
+                    "comment": "Spawn Y in block coordinates"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "-46",
+                    "comment": "Spawn Z in block coordinates"
+                }
+            ]
+        },
+        {
+            "id": "7",
+            "name": "Use Entity",
+            "direction": "Client to Server",
+            "comment": "This packet is sent from the client to the server when the client attacks or right-clicks another entity (a player, minecart, etc).\n\nA Notchian server only accepts this packet if the entity being attacked\/used is visible without obstruction and within a 4-unit radius of the player's position.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "User",
+                    "example": "1298",
+                    "comment": "The entity of the player (ignored by the server)"
+                },
+                {
+                    "type": "int",
+                    "name": "Target",
+                    "example": "1805",
+                    "comment": "The entity the player is interacting with"
+                },
+                {
+                    "type": "boolean",
+                    "name": "Mouse button",
+                    "example": "true",
+                    "comment": "true when the player is left-clicking and false when right-clicking."
+                }
+            ]
+        },
+        {
+            "id": "8",
+            "name": "Update Health",
+            "direction": "Server to Client",
+            "comment": "Sent by the server to update\/set the health of the player it is sent to. Added in protocol version 5.\n\nFood saturation acts as a food \"overcharge\". Food values will not decrease while the saturation is over zero. Players logging in automatically get a saturation of 5.0. Eating food increases the saturation as well as the food bar.\n",
+            "fields":
+            [
+                {
+                    "type": "short",
+                    "name": "Health",
+                    "example": "20",
+                    "comment": "0 or less = dead, 20 = full HP"
+                },
+                {
+                    "type": "short",
+                    "name": "Food",
+                    "example": "20",
+                    "comment": "0 - 20"
+                },
+                {
+                    "type": "float",
+                    "name": "Food Saturation",
+                    "example": "5.0",
+                    "comment": "Seems to vary from 0.0 to 5.0 in integer increments"
+                }
+            ]
+        },
+        {
+            "id": "9",
+            "name": "Respawn",
+            "direction": "Server to Client",
+            "comment": "To change the player's dimension (overworld\/nether\/end), send them a respawn packet with the appropriate dimension, followed by prechunks\/chunks for the new dimension, and finally a position and look packet.  You do not need to unload chunks, the client will do it automatically.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Dimension",
+                    "example": "1",
+                    "comment": "-1: The Nether, 0: The Overworld, 1: The End"
+                },
+                {
+                    "type": "byte",
+                    "name": "Difficulty",
+                    "example": "1",
+                    "comment": "0 thru 3 for Peaceful, Easy, Normal, Hard. 1 is always sent c->s"
+                },
+                {
+                    "type": "byte",
+                    "name": "Game mode",
+                    "example": "1",
+                    "comment": "0: survival, 1: creative, 2: adventure. The hardcore flag is not included"
+                },
+                {
+                    "type": "short",
+                    "name": "World height",
+                    "example": "256",
+                    "comment": "Defaults to 256"
+                },
+                {
+                    "type": "string",
+                    "name": "Level type",
+                    "example": "default",
+                    "comment": "See [[#0x01|0x01 login]]"
+                }
+            ]
+        },
+        {
+            "id": "10",
+            "name": "Player",
+            "direction": "Client to Server",
+            "comment": "This packet is used to indicate whether the player is on ground (walking\/swimming), or airborne (jumping\/falling).\n\nWhen dropping from sufficient height, fall damage is applied when this state goes from False to True. The amount of damage applied is based on the point where it last changed from True to False. Note that there are several movement related packets containing this state.\n\nThis packet was previously referred to as Flying\n",
+            "fields":
+            [
+                {
+                    "type": "boolean",
+                    "name": "On Ground",
+                    "example": "1",
+                    "comment": "True if the client is on the ground, False otherwise"
+                }
+            ]
+        },
+        {
+            "id": "11",
+            "name": "Player Position",
+            "direction": "Client to Server",
+            "comment": "Updates the players XYZ position on the server. \nIf <code>Stance - Y<\/code> is less than <code>0.1<\/code> or greater than <code>1.65<\/code>, the stance is illegal and the client will be kicked with the message \u00E2\u0080\u009CIllegal Stance\u00E2\u0080\u009D.\nIf the distance between the last known position of the player on the server and the new position set by this packet is greater than 100 units will result in the client being kicked for \"You moved too quickly :( (Hacking?)\"\nAlso if the absolute number of X or Z is set greater than <code>3.2E7D<\/code> the client will be kicked for \"Illegal position\" \n\n",
+            "fields":
+            [
+                {
+                    "type": "double",
+                    "name": "X",
+                    "example": "102.809",
+                    "comment": "Absolute position"
+                },
+                {
+                    "type": "double",
+                    "name": "Y",
+                    "example": "70.00",
+                    "comment": "Absolute position"
+                },
+                {
+                    "type": "double",
+                    "name": "Stance",
+                    "example": "71.62",
+                    "comment": "Used to modify the players bounding box when going up stairs, crouching, etc\u00E2\u0080\u00A6"
+                },
+                {
+                    "type": "double",
+                    "name": "Z",
+                    "example": "68.30",
+                    "comment": "Absolute position"
+                },
+                {
+                    "type": "boolean",
+                    "name": "On Ground",
+                    "example": "1",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "12",
+            "name": "Player Look",
+            "direction": "Client to Server",
+            "comment": "[[File:Minecraft-trig-yaw.png|thumb|The unit circle for yaw]]\n\nUpdates the direction the player is looking in.\n\nYaw is measured in degrees, and does not follow classical trigonometry rules. The unit circle of yaw on the xz-plane starts at (0, 1) and turns backwards towards (-1, 0), or in other words, it turns clockwise instead of counterclockwise. Additionally, yaw is not clamped to between 0 and 360 degrees; any number is valid, including negative numbers and numbers greater than 360.\n\nPitch is measured in degrees, where 0 is looking straight ahead, -90 is looking straight up, and 90 is looking straight down.\n\nYou can get a unit vector from a given yaw\/pitch via:\n  x = -cos(pitch) * sin(yaw)\n  y = -sin(pitch)\n  z =  cos(pitch) * cos(yaw)\n",
+            "fields":
+            [
+                {
+                    "type": "float",
+                    "name": "Yaw",
+                    "example": "0.00",
+                    "comment": "Absolute rotation on the X Axis, in degrees"
+                },
+                {
+                    "type": "float",
+                    "name": "Pitch",
+                    "example": "0.00",
+                    "comment": "Absolute rotation on the Y Axis, in degrees"
+                },
+                {
+                    "type": "boolean",
+                    "name": "On Ground",
+                    "example": "1",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "13",
+            "name": "Player Position and Look",
+            "direction": "Two-Way",
+            "comment": "A combination of [[#0x0C|Player Look]] and [[#0x0B|Player position]]. \n\n'''Note:''' When this packet is sent from the server, the 'Y' and 'Stance' fields are swapped.\n",
+            "fields":
+            [
+                {
+                    "type": "double",
+                    "name": "X",
+                    "example": "6.5",
+                    "comment": "Absolute position"
+                },
+                {
+                    "type": "double",
+                    "name": "Y",
+                    "example": "65.620000004768372",
+                    "comment": "Absolute position"
+                },
+                {
+                    "type": "double",
+                    "name": "Stance",
+                    "example": "67.240000009536743",
+                    "comment": "Used to modify the players bounding box when going up stairs, crouching, etc\u00E2\u0080\u00A6"
+                },
+                {
+                    "type": "double",
+                    "name": "Z",
+                    "example": "7.5",
+                    "comment": "Absolute position"
+                },
+                {
+                    "type": "float",
+                    "name": "Yaw",
+                    "example": "0.0",
+                    "comment": "Absolute rotation on the X Axis"
+                },
+                {
+                    "type": "float",
+                    "name": "Pitch",
+                    "example": "0.0",
+                    "comment": "Absolute rotation on the Y Axis"
+                },
+                {
+                    "type": "boolean",
+                    "name": "On Ground",
+                    "example": "0",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "14",
+            "name": "Player Digging",
+            "direction": "Client to Server",
+            "comment": "Sent when the player mines a block.  A Notchian server only accepts digging packets with coordinates within a 6-unit radius of the player's position.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Status",
+                    "example": "1",
+                    "comment": "The action the player is taking against the block (see below)"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "32",
+                    "comment": "Block position"
+                },
+                {
+                    "type": "byte",
+                    "name": "Y",
+                    "example": "64",
+                    "comment": "Block position"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "32",
+                    "comment": "Block position"
+                },
+                {
+                    "type": "byte",
+                    "name": "Face",
+                    "example": "3",
+                    "comment": "The face being hit (see below)"
+                }
+            ]
+        },
+        {
+            "id": "15",
+            "name": "Player Block Placement",
+            "direction": "Client to Server",
+            "comment": "Client to Server",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "32",
+                    "comment": "Block position"
+                },
+                {
+                    "type": "unsigned byte",
+                    "name": "Y",
+                    "example": "64",
+                    "comment": "Block position"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "32",
+                    "comment": "Block position"
+                },
+                {
+                    "type": "byte",
+                    "name": "Direction",
+                    "example": "3",
+                    "comment": "The offset to use for block\/item placement (see below)"
+                },
+                {
+                    "type": "[[Slot_Data|slot]]",
+                    "name": "Held item",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Cursor position X",
+                    "example": "0 - 16",
+                    "comment": "The position of the crosshair on the block"
+                },
+                {
+                    "type": "byte",
+                    "name": "Cursor position Y",
+                    "example": "0 - 16",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Cursor position Z",
+                    "example": "0 - 16",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "16",
+            "name": "Held Item Change",
+            "direction": "Two-Way",
+            "comment": "Sent when the player changes the slot selection\n",
+            "fields":
+            [
+                {
+                    "type": "short",
+                    "name": "Slot ID",
+                    "example": "1",
+                    "comment": "The slot which the player has selected (0-8)"
+                }
+            ]
+        },
+        {
+            "id": "17",
+            "name": "Use Bed",
+            "direction": "Server to Client",
+            "comment": "This packet tells that a player goes to bed.\n\nThe client with the matching  Entity ID will go into bed mode.\n\nThis Packet is sent to all nearby players including the one sent to bed.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "89",
+                    "comment": "Player ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "Unknown",
+                    "example": "0",
+                    "comment": "Only 0 has been observed"
+                },
+                {
+                    "type": "int",
+                    "name": "X coordinate",
+                    "example": "-247",
+                    "comment": "Bed headboard X as block coordinate"
+                },
+                {
+                    "type": "byte",
+                    "name": "Y coordinate",
+                    "example": "78",
+                    "comment": "Bed headboard Y as block coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Z coordinate",
+                    "example": "128",
+                    "comment": "Bed headboard Z as block coordinate"
+                }
+            ]
+        },
+        {
+            "id": "18",
+            "name": "Animation",
+            "direction": "Two-Way",
+            "comment": "Sent whenever an entity should change animation.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "55534",
+                    "comment": "Player ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "Animation",
+                    "example": "1",
+                    "comment": "Animation ID"
+                }
+            ]
+        },
+        {
+            "id": "19",
+            "name": "Entity Action",
+            "direction": "Client to Server",
+            "comment": "Sent at least when crouching, leaving a bed, or sprinting.\nTo send action animation to client use 0x28.\nThe client will send this with Action ID = 3 when \"Leave Bed\" is clicked.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "55534",
+                    "comment": "Player ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "Action ID",
+                    "example": "1",
+                    "comment": "The ID of the action, see below."
+                }
+            ]
+        },
+        {
+            "id": "20",
+            "name": "Spawn Named Entity",
+            "direction": "Server to Client",
+            "comment": "The only named entities (at the moment) are players (either real or NPC\/Bot). This packet is sent by the server when a player comes into visible range, '''not''' when a player joins.\n\nServers can, however, safely spawn player entities for players not in visible range. The client appears to handle it correctly.\n\nAt one point, the Notchian client was not okay with receiving player entity packets, including 0x14, that refer to its own username or EID; and would teleport to the absolute origin of the map and fall through the Void any time it received them. However, in more recent versions, it appears to handle them correctly, by spawning a new entity as directed (though future packets referring to the entity ID may be handled incorrectly).\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "94453",
+                    "comment": "Player ID"
+                },
+                {
+                    "type": "string",
+                    "name": "Player Name",
+                    "example": "Twdtwd",
+                    "comment": "Max length of 16"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "784",
+                    "comment": "Player X as Absolute Integer"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "2131",
+                    "comment": "Player Y as Absolute Integer"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "-752",
+                    "comment": "Player Z as Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "Yaw",
+                    "example": "0",
+                    "comment": "Player rotation as a packed byte"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "0",
+                    "comment": "Player rotation as a packed byte"
+                },
+                {
+                    "type": "short",
+                    "name": "Current Item",
+                    "example": "0",
+                    "comment": "The item the player is currently holding. Note that this should be 0 for \"no item\", unlike -1 used in other packets. A negative value crashes clients."
+                },
+                {
+                    "type": "[[Entities#Entity_Metadata_Format|Metadata]]",
+                    "name": "Metadata",
+                    "example": "",
+                    "comment": "The 1.3 client crashes on packets with no metadata, but the server can send any metadata key of 0, 1 or 8 and the client is fine."
+                }
+            ]
+        },
+        {
+            "id": "22",
+            "name": "Collect Item",
+            "direction": "Server to Client",
+            "comment": "Sent by the server when someone picks up an item lying on the ground - its sole purpose appears to be the animation of the item flying towards you. It doesn't destroy the entity in the client memory ([[#0x1D|0x1D]] does that), and it doesn't add it to your inventory ([[#0x67|0x67]] does that). The server only checks for items to be picked up after each [[#0x0B|Player Position]] and [[#0x0D|Player Position & Look]] packet sent by the client.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Collected EID",
+                    "example": "38",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "Collector EID",
+                    "example": "20",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "23",
+            "name": "Spawn Object\/Vehicle",
+            "direction": "Server to Client",
+            "comment": "Sent by the server when an Object\/Vehicle is created. The throwers entity id is now used for fishing floats too.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "62",
+                    "comment": "Entity ID of the Object"
+                },
+                {
+                    "type": "byte",
+                    "name": "Type",
+                    "example": "11",
+                    "comment": "The type of object (see [[Entities#Objects]])"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "16080",
+                    "comment": "The Absolute Integer X Position of the object"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "2299",
+                    "comment": "The Absolute Integer Y Position of the object"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "592",
+                    "comment": "The Absolute Integer Z Position of the object"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "67",
+                    "comment": "The pitch in steps of 2p\/256"
+                },
+                {
+                    "type": "byte",
+                    "name": "Yaw",
+                    "example": "0",
+                    "comment": "The yaw in steps of 2p\/256"
+                },
+                {
+                    "type": "[[Object Data]]",
+                    "name": "[[Object Data]]",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "24",
+            "name": "Spawn Mob",
+            "direction": "Server to Client",
+            "comment": "Sent by the server when a Mob Entity is Spawned\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "446",
+                    "comment": "Entity ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "Type",
+                    "example": "91",
+                    "comment": "The type of mob. See [[Entities#Mobs]]"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "13366",
+                    "comment": "The Absolute Integer X Position of the object"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "2176",
+                    "comment": "The Absolute Integer Y Position of the object"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "1680",
+                    "comment": "The Absolute Integer Z Position of the object"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "0",
+                    "comment": "The pitch in steps of 2p\/256"
+                },
+                {
+                    "type": "byte",
+                    "name": "Head Pitch",
+                    "example": "10",
+                    "comment": "The head pitch in steps of 2p\/256"
+                },
+                {
+                    "type": "byte",
+                    "name": "Yaw",
+                    "example": "-27",
+                    "comment": "Yaw in steps of 2p\/256"
+                },
+                {
+                    "type": "short",
+                    "name": "Velocity X",
+                    "example": "0",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Velocity Y",
+                    "example": "0",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Velocity Z",
+                    "example": "0",
+                    "comment": ""
+                },
+                {
+                    "type": "[[Entities#Entity_Metadata_Format|Metadata]]",
+                    "name": "Metadata",
+                    "example": "0 0 127",
+                    "comment": "Varies by mob, see [[Entities]]"
+                }
+            ]
+        },
+        {
+            "id": "25",
+            "name": "Spawn Painting",
+            "direction": "Server to Client",
+            "comment": "This packet shows location, name, and type of painting.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "0x00000326",
+                    "comment": "Unique entity ID"
+                },
+                {
+                    "type": "string",
+                    "name": "Title",
+                    "example": "Creepers",
+                    "comment": "Name of the painting; max length 13 (length of \"SkullAndRoses\")"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "50",
+                    "comment": "Center X coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "66",
+                    "comment": "Center Y coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "-50",
+                    "comment": "Center Z coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Direction",
+                    "example": "0",
+                    "comment": "Direction the painting faces (0 -z, 1 -x, 2 +z, 3 +x)"
+                }
+            ]
+        },
+        {
+            "id": "26",
+            "name": "Spawn Experience Orb",
+            "direction": "Server to Client",
+            "comment": "Spawns one or more experience orbs. Coordinates are in absolute units.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "105668",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "x",
+                    "example": "-1143",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "y",
+                    "example": "1952",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "z",
+                    "example": "1166",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "count",
+                    "example": "7",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "28",
+            "name": "Entity Velocity",
+            "direction": "Server to Client",
+            "comment": "This packet is new to version 4 of the protocol, and is believed to be Entity Velocity\/Motion.\n\nVelocity is believed to be in units of 1\/8000 of a block per server tick (50ms);\nfor example, -1343 would move (-1343 \/ 8000) = \u00E2\u0088\u00920.167875 blocks per tick (or \u00E2\u0088\u00923,3575 blocks per second).\n\n(This packet data values are not fully verified)\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "1805",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Velocity X",
+                    "example": "-1343",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Velocity Y",
+                    "example": "0",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Velocity Z",
+                    "example": "0",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "29",
+            "name": "Destroy Entity",
+            "direction": "Server to Client",
+            "comment": "Sent by the server when an list of Entities is to be destroyed on the client.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Entity Count",
+                    "example": "3",
+                    "comment": "The amount of entities which should be destroyed"
+                },
+                {
+                    "type": "array of int",
+                    "name": "Entity IDs",
+                    "example": "452, 546, 123",
+                    "comment": "The list of entity ids which should be destroyed"
+                }
+            ]
+        },
+        {
+            "id": "30",
+            "name": "Entity",
+            "direction": "Server to Client",
+            "comment": "Most entity-related packets are subclasses of this packet. When sent from the server to the client, it may initialize the entry.\n\nFor player entities, either this packet or any move\/look packet is sent every game tick.\nSo the meaning of this packet is basically that the entity did not move\/look since the last such packet.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "446",
+                    "comment": "Entity ID"
+                }
+            ]
+        },
+        {
+            "id": "31",
+            "name": "Entity Relative Move",
+            "direction": "Server to Client",
+            "comment": "This packet is sent by the server when an entity moves less then 4 blocks; if an entity moves more than 4 blocks [[#0x22|Entity Teleport]] should be sent instead.\n\nThis packet allows at most four blocks movement in any direction, because byte range is from -128 to 127. Movement is an offset of Absolute Int; to convert relative move to block coordinate offset, divide by 32.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "459",
+                    "comment": "Entity ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "dX",
+                    "example": "1",
+                    "comment": "X axis Relative movement as an Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "dY",
+                    "example": "-7",
+                    "comment": "Y axis Relative movement as an Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "dZ",
+                    "example": "5",
+                    "comment": "Z axis Relative movement as an Absolute Integer"
+                }
+            ]
+        },
+        {
+            "id": "32",
+            "name": "Entity Look",
+            "direction": "Server to Client",
+            "comment": "This packet is sent by the server when an entity rotates.  Example: \"Yaw\" field 64 means a 90 degree turn.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "459",
+                    "comment": "Entity ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "Yaw",
+                    "example": "126",
+                    "comment": "The X Axis rotation as a fraction of 360"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "0",
+                    "comment": "The Y Axis rotation as a fraction of 360"
+                }
+            ]
+        },
+        {
+            "id": "33",
+            "name": "Entity Look and Relative Move",
+            "direction": "Server to Client",
+            "comment": "This packet is sent by the server when an entity rotates and moves.\nSince a byte range is limited from -128 to 127, and movement is offset of Absolute Int,\nthis packet allows at most four blocks movement in any direction. (-128\/32 == -4)\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "459",
+                    "comment": "Entity ID"
+                },
+                {
+                    "type": "byte",
+                    "name": "dX",
+                    "example": "1",
+                    "comment": "X axis Relative movement as an Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "dY",
+                    "example": "-7",
+                    "comment": "Y axis Relative movement as an Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "dZ",
+                    "example": "5",
+                    "comment": "Z axis Relative movement as an Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "Yaw",
+                    "example": "126",
+                    "comment": "The X Axis rotation as a fraction of 360"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "0",
+                    "comment": "The Y Axis rotation as a fraction of 360"
+                }
+            ]
+        },
+        {
+            "id": "34",
+            "name": "Entity Teleport",
+            "direction": "Server to Client",
+            "comment": "This packet is sent by the server when an entity moves more than 4 blocks.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID",
+                    "example": "459",
+                    "comment": "Entity ID"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "14162",
+                    "comment": "X axis position as an Absolute Integer"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "2176",
+                    "comment": "Y axis position as an Absolute Integer"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "1111",
+                    "comment": "Z axis position as an Absolute Integer"
+                },
+                {
+                    "type": "byte",
+                    "name": "Yaw",
+                    "example": "126",
+                    "comment": "The X Axis rotation as a fraction of 360"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "0",
+                    "comment": "The Y Axis rotation as a fraction of 360"
+                }
+            ]
+        },
+        {
+            "id": "35",
+            "name": "Entity Head Look",
+            "direction": "Server to Client",
+            "comment": "Changes the direction an entity's head is facing.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Head Yaw",
+                    "example": "",
+                    "comment": "Head yaw in steps of 2p\/256"
+                }
+            ]
+        },
+        {
+            "id": "38",
+            "name": "Entity Status",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "Int",
+                    "name": "Entity ID",
+                    "example": "34353",
+                    "comment": ""
+                },
+                {
+                    "type": "Byte",
+                    "name": "Entity Status",
+                    "example": "0x03",
+                    "comment": "See below"
+                }
+            ]
+        },
+        {
+            "id": "39",
+            "name": "Attach Entity",
+            "direction": "Server to Client",
+            "comment": "This packet is sent when a player has been attached to an entity (e.g. Minecart)\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "1298",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "Vehicle ID",
+                    "example": "1805",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "40",
+            "name": "Entity Metadata",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "0x00000326",
+                    "comment": "Unique entity ID to update."
+                },
+                {
+                    "type": "[[Entities#Entity_Metadata_Format|Metadata]]",
+                    "name": "Entity Metadata",
+                    "example": "0x00 0x01 0x7F",
+                    "comment": "Metadata varies by entity. See [[Entities]]"
+                }
+            ]
+        },
+        {
+            "id": "41",
+            "name": "Entity Effect",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "14",
+                    "comment": "Entity ID of a player"
+                },
+                {
+                    "type": "byte",
+                    "name": "Effect ID",
+                    "example": "17",
+                    "comment": "See [http:\/\/www.minecraftwiki.net\/wiki\/Potion_effect#Parameters here]"
+                },
+                {
+                    "type": "byte",
+                    "name": "Amplifier",
+                    "example": "0",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Duration",
+                    "example": "64",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "42",
+            "name": "Remove Entity Effect",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "",
+                    "comment": "Entity ID of a player"
+                },
+                {
+                    "type": "byte",
+                    "name": "Effect ID",
+                    "example": "17",
+                    "comment": "See [http:\/\/www.minecraftwiki.net\/wiki\/Potion_effect#Parameters here]"
+                }
+            ]
+        },
+        {
+            "id": "43",
+            "name": "Set Experience",
+            "direction": "Server to Client",
+            "comment": "Sent by the server when the client should change experience levels.\n",
+            "fields":
+            [
+                {
+                    "type": "float",
+                    "name": "Experience bar",
+                    "example": "0.5960060358047485",
+                    "comment": "Used for drawing the experience bar - value is between 0 and 1."
+                },
+                {
+                    "type": "short",
+                    "name": "Level",
+                    "example": "8",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Total experience",
+                    "example": "130",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "51",
+            "name": "Chunk Data",
+            "direction": "Server to Client",
+            "comment": "Chunks are not unloaded by the client automatically. To unload chunks, send this packet with ground-up continuous=true and no 16^3 chunks (eg. primary bit mask=0).\n\nSee also: [[SMP Map Format]]\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "",
+                    "comment": "Chunk X Coordinate (*16 to get true X)"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "",
+                    "comment": "Chunk Z Coordinate (*16 to get true Z)"
+                },
+                {
+                    "type": "boolean",
+                    "name": "Ground-up continuous",
+                    "example": "",
+                    "comment": "This is True if the packet represents all sections in this vertical column, where the primary bit map specifies exactly which sections are included, and which are air."
+                },
+                {
+                    "type": "unsigned short",
+                    "name": "Primary bit map",
+                    "example": "15",
+                    "comment": "Bitmask with 1 for every 16x16x16 section which data follows in the compressed data."
+                },
+                {
+                    "type": "unsigned short",
+                    "name": "Add bit map",
+                    "example": "0",
+                    "comment": "Same as above, but this is used exclusively for the 'add' portion of the payload"
+                },
+                {
+                    "type": "int",
+                    "name": "Compressed size",
+                    "example": "",
+                    "comment": "Size of compressed chunk data."
+                },
+                {
+                    "type": "unsigned byte array",
+                    "name": "Compressed data",
+                    "example": "\u00E2\u0080\u00A6",
+                    "comment": "The chunk data is compressed using ZLib Deflate function."
+                }
+            ]
+        },
+        {
+            "id": "52",
+            "name": "Multi Block Change",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Chunk X",
+                    "example": "-9",
+                    "comment": "Chunk X Coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Chunk Z",
+                    "example": "12",
+                    "comment": "Chunk Z Coordinate"
+                },
+                {
+                    "type": "short",
+                    "name": "Record count",
+                    "example": "",
+                    "comment": "The number of blocks affected"
+                },
+                {
+                    "type": "int",
+                    "name": "Data size",
+                    "example": "",
+                    "comment": "The total size of the data, in bytes. Should always be 4*record count - please confirm."
+                },
+                {
+                    "type": "Special",
+                    "name": "Data",
+                    "example": "\u00E2\u0080\u00A6",
+                    "comment": "Coordinates, type, and metadata of blocks to change (see below table)."
+                }
+            ]
+        },
+        {
+            "id": "53",
+            "name": "Block Change",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "502",
+                    "comment": "Block X Coordinate"
+                },
+                {
+                    "type": "byte",
+                    "name": "Y",
+                    "example": "71",
+                    "comment": "Block Y Coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "18",
+                    "comment": "Block Z Coordinate"
+                },
+                {
+                    "type": "short",
+                    "name": "Block Type",
+                    "example": "78",
+                    "comment": "The new block type for the block"
+                },
+                {
+                    "type": "byte",
+                    "name": "Block Metadata",
+                    "example": "0",
+                    "comment": "The new Metadata for the block"
+                }
+            ]
+        },
+        {
+            "id": "54",
+            "name": "Block Action",
+            "direction": "Server to Client",
+            "comment": "This packet is used for a number of things:\n* <div class=\"li\">Chests opening and closing\n* Pistons pushing and pulling\n* Note blocks playing\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "502",
+                    "comment": "Block X Coordinate"
+                },
+                {
+                    "type": "short",
+                    "name": "Y",
+                    "example": "71",
+                    "comment": "Block Y Coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "18",
+                    "comment": "Block Z Coordinate"
+                },
+                {
+                    "type": "byte",
+                    "name": "Byte 1",
+                    "example": "3",
+                    "comment": "Varies depending on block - see below"
+                },
+                {
+                    "type": "byte",
+                    "name": "Byte 2",
+                    "example": "17",
+                    "comment": "Varies depending on block - see below"
+                },
+                {
+                    "type": "short",
+                    "name": "Block ID",
+                    "example": "29",
+                    "comment": "The block id this action is set for"
+                }
+            ]
+        },
+        {
+            "id": "55",
+            "name": "Block Break Animation",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "EID?",
+                    "example": "",
+                    "comment": "Entity breaking the block?"
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "",
+                    "comment": "rowspan=\"3\" | Block position"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "",
+                    "comment": "-"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "",
+                    "comment": "-"
+                },
+                {
+                    "type": "byte",
+                    "name": "Destroy Stage",
+                    "example": "1",
+                    "comment": "How far destroyed this block is. (0-7)"
+                }
+            ]
+        },
+        {
+            "id": "56",
+            "name": "Map Chunk Bulk",
+            "direction": "Server to Client",
+            "comment": "See also: [[SMP Map Format]]\n\nTo reduce the number of bytes this packet is used to send chunks together for better compression results.\n",
+            "fields":
+            [
+                {
+                    "type": "short",
+                    "name": "Chunk column count",
+                    "example": "",
+                    "comment": "The number of chunks in this packet"
+                },
+                {
+                    "type": "int",
+                    "name": "Data length",
+                    "example": "",
+                    "comment": "the size of the data field"
+                },
+                {
+                    "type": "boolean",
+                    "name": "Sky light sent",
+                    "example": "",
+                    "comment": "Whether or not the chunk data contains a light nibble array. This is true in the main world, false in the end + nether"
+                },
+                {
+                    "type": "byte array",
+                    "name": "Data",
+                    "example": "",
+                    "comment": "Compressed chunk data"
+                },
+                {
+                    "type": "see below",
+                    "name": "Meta information",
+                    "example": "",
+                    "comment": "see below"
+                }
+            ]
+        },
+        {
+            "id": "60",
+            "name": "Explosion",
+            "direction": "Server to Client",
+            "comment": "Sent when an explosion occurs (creepers, TNT, and ghast fireballs).\n",
+            "fields":
+            [
+                {
+                    "type": "double",
+                    "name": "X",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "double",
+                    "name": "Y",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "double",
+                    "name": "Z",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "float",
+                    "name": "Radius",
+                    "example": "3.0",
+                    "comment": "Currently unused in the client"
+                },
+                {
+                    "type": "int",
+                    "name": "Record count",
+                    "example": "",
+                    "comment": "This is the count, not the size. The size is 3 times this value."
+                },
+                {
+                    "type": "(byte, byte, byte) \u00C3\u0097 count",
+                    "name": "Records",
+                    "example": "",
+                    "comment": "Each record is 3 signed bytes long, each bytes are the XYZ (respectively) offsets of affected blocks."
+                },
+                {
+                    "type": "float",
+                    "name": "Player Motion X",
+                    "example": "",
+                    "comment": "X velocity of the player being pushed by the explosion"
+                },
+                {
+                    "type": "float",
+                    "name": "Player Motion Y",
+                    "example": "",
+                    "comment": "Y velocity of the player being pushed by the explosion"
+                },
+                {
+                    "type": "float",
+                    "name": "Player Motion Z",
+                    "example": "",
+                    "comment": "Z velocity of the player being pushed by the explosion"
+                }
+            ]
+        },
+        {
+            "id": "61",
+            "name": "Sound Or Particle Effect",
+            "direction": "Server to Client",
+            "comment": "Sent when a client is to play a sound or particle effect.\n\nBy default, the minecraft client adjusts the volume of sound effects based on distance. The final boolean field is used to disable this, and instead the effect is played from 2 blocks away in the correct direction. Currently this is only used for effect 1013 (mob.wither.spawn), and is ignored for any other value by the client.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Effect ID",
+                    "example": "1003",
+                    "comment": "The ID of the effect, see below."
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "",
+                    "comment": "The X location of the effect."
+                },
+                {
+                    "type": "byte",
+                    "name": "Y",
+                    "example": "",
+                    "comment": "The Y location of the effect."
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "",
+                    "comment": "The Z location of the effect."
+                },
+                {
+                    "type": "int",
+                    "name": "Data",
+                    "example": "0",
+                    "comment": "Extra data for certain effects, see below."
+                },
+                {
+                    "type": "boolean",
+                    "name": "Disable relative volume",
+                    "example": "false",
+                    "comment": "See above"
+                }
+            ]
+        },
+        {
+            "id": "62",
+            "name": "Named Sound Effect",
+            "direction": "Server to client",
+            "comment": "Used to play a sound effect on the client.\n\nAll known sound effect names can be seen [https:\/\/github.com\/SirCmpwn\/Craft.Net\/blob\/master\/Craft.Net.Data\/SoundEffect.cs here].\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Sound name",
+                    "example": "step.grass",
+                    "comment": "250"
+                },
+                {
+                    "type": "int",
+                    "name": "Effect position X",
+                    "example": "250",
+                    "comment": "effect X multiplied by 8"
+                },
+                {
+                    "type": "int",
+                    "name": "Effect position Y",
+                    "example": "250",
+                    "comment": "effect Y multiplied by 8"
+                },
+                {
+                    "type": "int",
+                    "name": "Effect position Z",
+                    "example": "250",
+                    "comment": "effect Z multiplied by 8"
+                },
+                {
+                    "type": "float",
+                    "name": "Volume",
+                    "example": "9",
+                    "comment": "1 is 100%, can be more"
+                },
+                {
+                    "type": "byte",
+                    "name": "Pitch",
+                    "example": "1",
+                    "comment": "63 is 100%, can be more"
+                }
+            ]
+        },
+        {
+            "id": "63",
+            "name": "Particle",
+            "direction": "Server to Client",
+            "comment": "This displays the named particle\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Particle name",
+                    "example": "hugeexplosion",
+                    "comment": "The name of the particle to create. A list can be found [https:\/\/gist.github.com\/thinkofdeath\/5110835 here]"
+                },
+                {
+                    "type": "float",
+                    "name": "X",
+                    "example": "0",
+                    "comment": "X position of the particle"
+                },
+                {
+                    "type": "float",
+                    "name": "Y",
+                    "example": "0",
+                    "comment": "Y position of the particle"
+                },
+                {
+                    "type": "float",
+                    "name": "Z",
+                    "example": "0",
+                    "comment": "Z position of the particle"
+                },
+                {
+                    "type": "float",
+                    "name": "Offset X",
+                    "example": "0",
+                    "comment": "This is added to the X position after being multiplied by random.nextGaussian()"
+                },
+                {
+                    "type": "float",
+                    "name": "Offset Y",
+                    "example": "0",
+                    "comment": "This is added to the Y position after being multiplied by random.nextGaussian()"
+                },
+                {
+                    "type": "float",
+                    "name": "Offset Z",
+                    "example": "0",
+                    "comment": "This is added to the Z position after being multiplied by random.nextGaussian()"
+                },
+                {
+                    "type": "float",
+                    "name": "Particle speed",
+                    "example": "0",
+                    "comment": "The speed of each particle"
+                },
+                {
+                    "type": "int",
+                    "name": "Number of particles",
+                    "example": "0",
+                    "comment": "The number of particles to create"
+                }
+            ]
+        },
+        {
+            "id": "70",
+            "name": "Change Game State",
+            "direction": "Server to Client",
+            "comment": "This packet appeared with protocol version 10. Currently, it appears when a bed can't be used as a spawn point and when the rain state changes.  it could have additional uses in the future.\n\nThe class has an array of strings linked to reason codes 0, 1, 2, and 3 but only the codes for 1 and 2 are null.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Reason",
+                    "example": "0",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Game mode",
+                    "example": "0",
+                    "comment": "Used only when reason = 3. 0 is survival, 1 is creative."
+                }
+            ]
+        },
+        {
+            "id": "71",
+            "name": "Spawn Global Entity",
+            "direction": "Server to Client",
+            "comment": "With this packet, the server notifies the client of thunderbolts striking within a 512 block radius around the player. The coordinates specify where exactly the thunderbolt strikes.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Entity ID",
+                    "example": "4",
+                    "comment": "The entity ID of the thunderbolt"
+                },
+                {
+                    "type": "byte",
+                    "name": "Type",
+                    "example": "1",
+                    "comment": "The global entity type, currently always 1 for thunderbolt."
+                },
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "133",
+                    "comment": "Thunderbolt X as Absolute Integer"
+                },
+                {
+                    "type": "int",
+                    "name": "Y",
+                    "example": "913",
+                    "comment": "Thunderbolt Y as Absolute Integer"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "63552",
+                    "comment": "Thunderbolt Z as Absolute Integer"
+                }
+            ]
+        },
+        {
+            "id": "100",
+            "name": "Open Window",
+            "direction": "Server to Client",
+            "comment": "This is sent to the client when it should open an inventory, such as a chest, workbench, or furnace. This message is not sent anywhere for clients opening their own inventory.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "123",
+                    "comment": "A unique id number for the window to be displayed.  Notchian server implementation is a counter, starting at 1."
+                },
+                {
+                    "type": "byte",
+                    "name": "Inventory Type",
+                    "example": "2",
+                    "comment": "The window type to use for display.  Check below"
+                },
+                {
+                    "type": "string",
+                    "name": "Window title",
+                    "example": "Chest",
+                    "comment": "The title of the window."
+                },
+                {
+                    "type": "byte",
+                    "name": "Number of Slots",
+                    "example": "3",
+                    "comment": "Number of slots in the window (excluding the number of slots in the player inventory)."
+                },
+                {
+                    "type": "boolean",
+                    "name": "Use provided window title",
+                    "example": "1",
+                    "comment": "If false, the client will look up a string like \"window.minecart\". If true, the client uses what the server provides."
+                }
+            ]
+        },
+        {
+            "id": "101",
+            "name": "Close Window",
+            "direction": "Two-Way",
+            "comment": "This packet is sent by the client when closing a window. This packet is sent from the server to the client when a window is forcibly closed, such as when a chest is destroyed while it's open.\n\nNote, notchian clients send a close window message with window id 0 to close their inventory even though there is never an Open Window message for inventory. \n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "0",
+                    "comment": "This is the id of the window that was closed. 0 for inventory."
+                }
+            ]
+        },
+        {
+            "id": "102",
+            "name": "Click Window",
+            "direction": "Client to Server",
+            "comment": "This packet is sent by the player when it clicks on a slot in a window.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "0",
+                    "comment": "The id of the window which was clicked. 0 for player inventory."
+                },
+                {
+                    "type": "short",
+                    "name": "Slot",
+                    "example": "36",
+                    "comment": "The clicked slot. See below."
+                },
+                {
+                    "type": "byte",
+                    "name": "Button",
+                    "example": "1",
+                    "comment": "The button used in the click. See below."
+                },
+                {
+                    "type": "short",
+                    "name": "Action number",
+                    "example": "12",
+                    "comment": "A unique number for the action, used for transaction handling (See the Transaction packet)."
+                },
+                {
+                    "type": "byte",
+                    "name": "Mode",
+                    "example": "1",
+                    "comment": "Inventory operation mode. See below."
+                },
+                {
+                    "type": "[[Slot_Data|slot]]",
+                    "name": "Clicked item",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "103",
+            "name": "Set Slot",
+            "direction": "Server to Client",
+            "comment": "Sent by the server when an item in a slot (in a window) is added\/removed.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "0",
+                    "comment": "The window which is being updated. 0 for player inventory. Note that all known window types include the player inventory. This packet will only be sent for the currently opened window while the player is performing actions, even if it affects the player inventory. After the window is closed, a number of these packets are sent to update the player's inventory window (0)."
+                },
+                {
+                    "type": "short",
+                    "name": "Slot",
+                    "example": "36",
+                    "comment": "The slot that should be updated"
+                },
+                {
+                    "type": "[[Slot_Data|slot]]",
+                    "name": "Slot data",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "104",
+            "name": "Set Window Items",
+            "direction": "Server to Client",
+            "comment": "[[File:Inventory-slots.png|thumb|The inventory slots]]\n\nSent by the server when an item in a slot (in a window) is added\/removed. This includes the main inventory, equipped armour and crafting slots. \n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "1",
+                    "comment": "The id of window which items are being sent for. 0 for player inventory."
+                },
+                {
+                    "type": "short",
+                    "name": "Count",
+                    "example": "4",
+                    "comment": "The number of slots (see below)"
+                },
+                {
+                    "type": "array of [[Slot_Data|slot]]s",
+                    "name": "Slot data",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "105",
+            "name": "Update Window Property",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "2",
+                    "comment": "The id of the window."
+                },
+                {
+                    "type": "short",
+                    "name": "Property",
+                    "example": "1",
+                    "comment": "Which property should be updated."
+                },
+                {
+                    "type": "short",
+                    "name": "Value",
+                    "example": "650",
+                    "comment": "The new value for the property."
+                }
+            ]
+        },
+        {
+            "id": "106",
+            "name": "Confirm Transaction",
+            "direction": "Two-Way",
+            "comment": "A packet from the server indicating whether a request from the client was accepted, or whether there was a conflict (due to lag). This packet is also sent from the client to the server in response to a server transaction rejection packet.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window id",
+                    "example": "0",
+                    "comment": "The id of the window that the action occurred in."
+                },
+                {
+                    "type": "short",
+                    "name": "Action number",
+                    "example": "12",
+                    "comment": "Every action that is to be accepted has a unique number. This field corresponds to that number."
+                },
+                {
+                    "type": "boolean",
+                    "name": "Accepted?",
+                    "example": "true",
+                    "comment": "Whether the action was accepted."
+                }
+            ]
+        },
+        {
+            "id": "107",
+            "name": "Creative Inventory Action",
+            "direction": "Two-Way",
+            "comment": "While the user is in the standard inventory (i.e., not a crafting bench) on a creative-mode server then the server will send this packet:\n\n* <div class=\"li\"> If an item is dropped into the quick bar<\/div>\n* If an item is picked up from the quick bar (item id is -1)\n",
+            "fields":
+            [
+                {
+                    "type": "short",
+                    "name": "Slot",
+                    "example": "36",
+                    "comment": "Inventory slot"
+                },
+                {
+                    "type": "[[Slot_Data|slot]]",
+                    "name": "Clicked item",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "108",
+            "name": "Enchant Item",
+            "direction": "Client to Server",
+            "comment": "Client to Server",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Window ID",
+                    "example": "1",
+                    "comment": "The ID sent by [[#0x64|Open Window]]"
+                },
+                {
+                    "type": "byte",
+                    "name": "Enchantment",
+                    "example": "0",
+                    "comment": "The position of the enchantment on the enchantment table window, starting with 0 as the topmost one."
+                }
+            ]
+        },
+        {
+            "id": "130",
+            "name": "Update Sign",
+            "direction": "Two-Way",
+            "comment": "Two-Way",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "128",
+                    "comment": "Block X Coordinate"
+                },
+                {
+                    "type": "short",
+                    "name": "Y",
+                    "example": "0",
+                    "comment": "Block Y Coordinate"
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "-128",
+                    "comment": "Block Z Coordinate"
+                },
+                {
+                    "type": "string",
+                    "name": "Text1",
+                    "example": "First line",
+                    "comment": "First line of text in the sign"
+                },
+                {
+                    "type": "string",
+                    "name": "Text2",
+                    "example": "Second line",
+                    "comment": "Second line of text in the sign"
+                },
+                {
+                    "type": "string",
+                    "name": "Text3",
+                    "example": "Third line",
+                    "comment": "Third line of text in the sign"
+                },
+                {
+                    "type": "string",
+                    "name": "Text4",
+                    "example": "Fourth line",
+                    "comment": "Fourth line of text in the sign"
+                }
+            ]
+        },
+        {
+            "id": "131",
+            "name": "Item Data",
+            "direction": "Server to Client",
+            "comment": "Sent to specify complex data on an item; currently used only for maps.\n",
+            "fields":
+            [
+                {
+                    "type": "short",
+                    "name": "Item Type",
+                    "example": "358",
+                    "comment": "Type of item being modified"
+                },
+                {
+                    "type": "short",
+                    "name": "Item ID",
+                    "example": "0",
+                    "comment": "The ID (damage value) of the item being modified"
+                },
+                {
+                    "type": "short",
+                    "name": "Text length",
+                    "example": "35",
+                    "comment": "Length of following byte array"
+                },
+                {
+                    "type": "byte array",
+                    "name": "Text",
+                    "example": "{0,0,0,20,20,20,20,20}",
+                    "comment": "ASCII text."
+                }
+            ]
+        },
+        {
+            "id": "132",
+            "name": "Update Tile Entity",
+            "direction": "Server to Client",
+            "comment": "Essentially a block update on a tile entity.\n",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "X",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Y",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "int",
+                    "name": "Z",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Action",
+                    "example": "",
+                    "comment": "The type of update to perform"
+                },
+                {
+                    "type": "Short",
+                    "name": "Data length",
+                    "example": "",
+                    "comment": "Varies"
+                },
+                {
+                    "type": "Byte Array",
+                    "name": "NBT Data",
+                    "example": "",
+                    "comment": "Present if data length > 0. Compressed with [[wikipedia:Gzip|gzip]]. Varies"
+                }
+            ]
+        },
+        {
+            "id": "200",
+            "name": "Increment Statistic",
+            "direction": "Server to Client",
+            "comment": "Server to Client",
+            "fields":
+            [
+                {
+                    "type": "int",
+                    "name": "Statistic ID",
+                    "example": "1003",
+                    "comment": "The ID of the statistic. See [http:\/\/www.minecraftforum.net\/viewtopic.php?f=1020&t=295360 List of statistics]."
+                },
+                {
+                    "type": "byte",
+                    "name": "Amount",
+                    "example": "1",
+                    "comment": "The amount to increment the statistic."
+                }
+            ]
+        },
+        {
+            "id": "201",
+            "name": "Player List Item",
+            "direction": "Server to Client",
+            "comment": "Sent by the notchian server to update the user list (<tab> in the client). The server sends one packet per user per tick, amounting to 20 packets\/s for 1 online user, 40 for 2, and so forth.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Player name",
+                    "example": "barneygale",
+                    "comment": "Supports chat colouring, limited to 16 characters."
+                },
+                {
+                    "type": "boolean",
+                    "name": "Online",
+                    "example": "true",
+                    "comment": "If false, the client will remove the user from the list."
+                },
+                {
+                    "type": "short",
+                    "name": "Ping",
+                    "example": "193",
+                    "comment": "Ping, presumably in ms."
+                }
+            ]
+        },
+        {
+            "id": "202",
+            "name": "Player Abilities",
+            "direction": "Two-Way",
+            "comment": "The latter 2 bytes are used to indicate the walking and flying speeds respectively, while the first byte is used to determine the value of 4 booleans.\n \nThese booleans are whether damage is disabled (god mode, '8' bit), whether the player can fly ('4' bit), whether the player is flying ('2' bit), and whether the player is in creative mode ('1' bit).\n \nTo get the values of these booleans, simply AND (&) the byte with 1,2,4 and 8 respectively, to get the 0 or 1 bitwise value. To set them OR (|) them with their repspective masks.\nThe vanilla client sends this packet when the player starts\/stops flying with the second parameter changed accordingly. All other parameters are ignored by the vanilla server.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Flags",
+                    "example": "5",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Flying speed",
+                    "example": "12",
+                    "comment": ""
+                },
+                {
+                    "type": "byte",
+                    "name": "Walking speed",
+                    "example": "25",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "203",
+            "name": "Tab-complete",
+            "direction": "Two-way",
+            "comment": "Sent C->S when the user presses [tab] while writing text. The payload contains all text behind the cursor.\n\nThe server responds with an auto-completion of the last word sent to it. In the case of regular chat, this is a player username. Command names and parameters are also supported.\n\nIn the event of more than one possible completion, the server responds with the options packed into the single string field, separated by a null character. Note that as strings are UTF-16, this is two bytes wide.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Text",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "204",
+            "name": "Client Settings",
+            "direction": "Client to server",
+            "comment": "Sent when the player connects, or when settings are changed.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Locale",
+                    "example": "en_GB",
+                    "comment": "-"
+                },
+                {
+                    "type": "byte",
+                    "name": "View distance",
+                    "example": "0",
+                    "comment": "0-3 for 'far', 'normal', 'short', 'tiny'."
+                },
+                {
+                    "type": "byte",
+                    "name": "Chat flags",
+                    "example": "8",
+                    "comment": "Chat settings. See notes below."
+                },
+                {
+                    "type": "byte",
+                    "name": "Difficulty",
+                    "example": "0",
+                    "comment": "Client-side difficulty from options.txt"
+                },
+                {
+                    "type": "boolean",
+                    "name": "Show Cape",
+                    "example": "true",
+                    "comment": "Client-side \"show cape\" option"
+                }
+            ]
+        },
+        {
+            "id": "205",
+            "name": "Client Statuses",
+            "direction": "Client to server",
+            "comment": "Sent when the client is ready to complete login and when the client is ready to respawn after death.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Payload",
+                    "example": "0",
+                    "comment": "Bit field. 0: Initial spawn, 1: Respawn after death"
+                }
+            ]
+        },
+        {
+            "id": "206",
+            "name": "Scoreboard Objective",
+            "direction": "Server to Client",
+            "comment": "This is sent to the client when it should create a new scoreboard or remove one.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Objective name",
+                    "example": "deaths",
+                    "comment": "An unique name for the objective"
+                },
+                {
+                    "type": "string",
+                    "name": "Objective value",
+                    "example": "Deaths",
+                    "comment": "The text to be displayed for the score."
+                },
+                {
+                    "type": "byte",
+                    "name": "Create\/Remove",
+                    "example": "0",
+                    "comment": "0 to create the scoreboard. 1 to remove the scoreboard. 2 to update the display text. TODO: Check these values"
+                }
+            ]
+        },
+        {
+            "id": "207",
+            "name": "Update Score",
+            "direction": "Server to Client",
+            "comment": "This is sent to the client when it should update a scoreboard item.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Item Name",
+                    "example": "Bob",
+                    "comment": "An unique name to be displayed in the list."
+                },
+                {
+                    "type": "byte",
+                    "name": "Update\/Remove",
+                    "example": "0",
+                    "comment": "0 to create\/update an item. 1 to remove an item."
+                },
+                {
+                    "type": "string",
+                    "name": "Score Name",
+                    "example": "deaths",
+                    "comment": "The unique name for the scoreboard to be updated. Only sent when Update\/Remove does not equal 1."
+                },
+                {
+                    "type": "integer",
+                    "name": "Value",
+                    "example": "5",
+                    "comment": "The score to be displayed next to the entry. Only sent when Update\/Remove does not equal 1."
+                }
+            ]
+        },
+        {
+            "id": "208",
+            "name": "Display Scoreboard",
+            "direction": "Server to Client",
+            "comment": "This is sent to the client when it should display a scoreboard.\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Position",
+                    "example": "1",
+                    "comment": "The position of the scoreboard. 0 = list, 1 = sidebar, 2 = belowName."
+                },
+                {
+                    "type": "string",
+                    "name": "Score Name",
+                    "example": "deaths",
+                    "comment": "The unique name for the scoreboard to be displayed."
+                }
+            ]
+        },
+        {
+            "id": "209",
+            "name": "Teams",
+            "direction": "Server to Client",
+            "comment": "Creates and updates teams.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Team Name",
+                    "example": "mcdevs",
+                    "comment": "A unique name for the team. (Shared with scoreboard)."
+                },
+                {
+                    "type": "byte",
+                    "name": "Mode",
+                    "example": "0",
+                    "comment": "If 0 then the team is created."
+                },
+                {
+                    "type": "string",
+                    "name": "Team Display Name",
+                    "example": "McDevs",
+                    "comment": "Only if Mode = 0 or 2."
+                },
+                {
+                    "type": "string",
+                    "name": "Team Prefix",
+                    "example": "",
+                    "comment": "Only if Mode = 0 or 2. Displayed before the players' name that are part of this team."
+                },
+                {
+                    "type": "string",
+                    "name": "Team Suffix",
+                    "example": "",
+                    "comment": "Only if Mode = 0 or 2. Displayed after the players' name that are part of this team."
+                },
+                {
+                    "type": "byte",
+                    "name": "Friendly fire",
+                    "example": "0",
+                    "comment": "Only if Mode = 0 or 2; 0 for off, 1 for on, 3 for seeing friendly invisibles"
+                },
+                {
+                    "type": "short",
+                    "name": "Player count",
+                    "example": "0",
+                    "comment": "Only if Mode = 0 or 3 or 4. Number of players in the array"
+                },
+                {
+                    "type": "Array of strings",
+                    "name": "Players",
+                    "example": "",
+                    "comment": "Only if Mode = 0 or 3 or 4. Players to be added\/remove from the team."
+                }
+            ]
+        },
+        {
+            "id": "250",
+            "name": "Plugin Message",
+            "direction": "Two-Way",
+            "comment": "Mods and plugins can use this to send their data. As of 1.3, Minecraft itself uses a number of [[plugin channel]]s. These internal channels are prefixed with <code>MC|<\/code>.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Channel",
+                    "example": "MyMod:testchannel",
+                    "comment": "Name of the \"channel\" used to send the data."
+                },
+                {
+                    "type": "short",
+                    "name": "length",
+                    "example": "",
+                    "comment": "Length of the following byte array"
+                },
+                {
+                    "type": "byte array",
+                    "name": "data",
+                    "example": "",
+                    "comment": "Any data."
+                }
+            ]
+        },
+        {
+            "id": "252",
+            "name": "Encryption Key Response",
+            "direction": "Two-Way",
+            "comment": "See [[Protocol Encryption]] for information on this packet. Bypassing the encryption is possible, authentication for the player name is still needed if the server is in online mode, but instead of sending this packet, you send [[#0xCD|Client Statuses]] instead.\n",
+            "fields":
+            [
+                {
+                    "type": "short",
+                    "name": "Shared secret length",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte array",
+                    "name": "Shared secret",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Verify token length",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte array",
+                    "name": "Verify token response",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "253",
+            "name": "Encryption Key Request",
+            "direction": "Server to client",
+            "comment": "See [[Protocol Encryption]] for information on this packet.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Server id",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Public key length",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte array",
+                    "name": "Public key",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "short",
+                    "name": "Verify token length",
+                    "example": "",
+                    "comment": ""
+                },
+                {
+                    "type": "byte array",
+                    "name": "Verify token",
+                    "example": "",
+                    "comment": ""
+                }
+            ]
+        },
+        {
+            "id": "254",
+            "name": "Server List Ping",
+            "direction": "Client to Server",
+            "comment": "This packet is used by the multiplayer menu to retrieve MOTD, version, and player counts. For more info see [[Server List Ping]]\n",
+            "fields":
+            [
+                {
+                    "type": "byte",
+                    "name": "Magic",
+                    "example": "1",
+                    "comment": "always 1"
+                }
+            ]
+        },
+        {
+            "id": "255",
+            "name": "Disconnect\/Kick",
+            "direction": "Two-Way",
+            "comment": "Sent by the server before it disconnects a client, or by the client before it disconnects from the server. The receiver of this packet assumes that the sender has already closed the connection by the time the packet arrives.\n\nDue to race conditions in the client, a local server may need to pause for a short period after sending this packet before closing the connection. An alternative is simply not to close the connection, and wait for the client to do so on receipt of this packet.\n",
+            "fields":
+            [
+                {
+                    "type": "string",
+                    "name": "Reason",
+                    "example": "The server is full!",
+                    "comment": "Displayed to the client when the connection terminates"
+                }
+            ]
+        }
+    ]
+}
