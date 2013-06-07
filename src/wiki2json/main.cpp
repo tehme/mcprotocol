@@ -30,6 +30,7 @@ struct PacketInfo
 	std::string packetComment;
 	std::string packetName;
 	std::string packetDirection;
+	std::string wikiLink;
 
 	int packetId;
 	std::vector<FieldInfo> fields;
@@ -268,6 +269,9 @@ void ParsePacketBlock_raw(const std::string& _block, PacketInfo& _dst)
 	TokenOffsetsToStr(_block, idbuf, toffs);
 	_dst.packetId = strtol(idbuf.c_str(), NULL, 16);
 
+	// Link to wiki
+	_dst.wikiLink = "http://www.wiki.vg/Protocol#0x" + idbuf;
+
 	// Packet direction
 	// ''Two-Way''
 	offset = FindTextBetweenFragments(_block, "''", "''", toffs, offset);
@@ -374,7 +378,8 @@ void DebugPacketsOutput(const std::vector<PacketInfo>& _src, std::ostream& _ostr
 	{
 		_ostr	<< "Packet name:      [" << pi.packetName << "]" << std::endl
 				<< "Packet id:        [" << pi.packetId << "] (0x" << std::hex << pi.packetId << ")" << std::dec << std::endl
-				<< "Packet direction: [" << pi.packetDirection << "]" << std::endl << std::endl
+				<< "Packet direction: [" << pi.packetDirection << "]" << std::endl
+				<< "Wiki link:        [" << pi.wikiLink << "]" << std::endl << std::endl
 				<< "Fields (" << pi.fields.size() << "):" << std::endl;
 
 		BOOST_FOREACH(auto &i, pi.fields)
@@ -398,6 +403,7 @@ void PacketToJson(const PacketInfo& _src, boost::property_tree::ptree& _packet)
 	_packet.put("name", _src.packetName);
 	_packet.put("direction", _src.packetDirection);
 	_packet.put("comment", _src.packetComment);
+	_packet.put("wikilink", _src.wikiLink);
 
 	// Fields
 	boost::property_tree::ptree array;
@@ -424,32 +430,8 @@ void PacketsToJson(const std::vector<PacketInfo>& _src, boost::property_tree::pt
 
 	boost::property_tree::ptree packetJson;
 	BOOST_FOREACH(auto &packetInfo, _src)
-	{
-		
+	{		
 		PacketToJson(packetInfo, packetJson);
-
-		//// Data
-		//packetJson.put("id", packetInfo.packetId);
-		//packetJson.put("name", packetInfo.packetName);
-		//packetJson.put("direction", packetInfo.packetDirection);
-		//packetJson.put("comment", packetInfo.packetComment);
-
-		//// Fields
-		//boost::property_tree::ptree array;
-
-		//for(int i = 0; i < packetInfo.fields.size(); ++i)
-		//{
-		//	boost::property_tree::ptree field;
-		//	field.put("type", packetInfo.fields[i].type);
-		//	field.put("name", packetInfo.fields[i].name);
-		//	field.put("example", packetInfo.fields[i].example);
-		//	field.put("comment", packetInfo.fields[i].comment);
-		//
-		//	array.push_back(std::make_pair("", field));
-		//}
-
-		//packetJson.add_child("fields", array);
-
 		packetsArray.push_back(std::make_pair("", packetJson));
 	}
 
@@ -485,7 +467,6 @@ int main(int argc, char* argv[])
 		destJson = argv[2];
 	}
 
-
 	std::ifstream page(rawPage);
 	if(!page)
 	{
@@ -513,6 +494,6 @@ int main(int argc, char* argv[])
 	PacketsToJson(packetsInfo, packetsJson);
 
 	boost::property_tree::write_json(destJson, packetsJson);
-				
+
 	return 0;
 }
