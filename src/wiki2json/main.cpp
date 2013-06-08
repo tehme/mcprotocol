@@ -7,6 +7,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/foreach.hpp>
 #include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string_regex.hpp>
+#include <boost/regex.hpp>
 #include <boost/property_tree/json_parser.hpp>
 //#include <jsoncpp/json.h>
 
@@ -27,13 +29,22 @@ struct FieldInfo
 
 struct PacketInfo
 {
-	std::string packetComment;
-	std::string packetName;
-	std::string packetDirection;
+	std::string id;
+	std::string name;
+	std::string direction;
+	std::string comment;
 	std::string wikiLink;
-
-	int packetId;
 	std::vector<FieldInfo> fields;
+
+	void clear()
+	{
+		id.clear();
+		name.clear();
+		direction.clear();
+		comment.clear();
+		wikiLink.clear();
+		fields.clear();
+	}
 };
 
 void TokenOffsetsToStr(const std::string& _src, std::string& _dst, const TokenOffsets& _toffs)
@@ -64,146 +75,6 @@ size_t FindTextBetweenFragments(const std::string& _src, const std::string& _bef
 	return afterOff + _after.size();
 }
 
-size_t GetPacketBlock(const std::string& _src, std::string& _dst, size_t _offset)
-{
-	static const std::string blockStart = "<p><br />\n<span id=";
-	static const std::string blockEnd   = "</table>";
-
-	TokenOffsets offs;
-	_offset = FindTextBetweenFragments(_src, blockStart, blockEnd, offs, _offset);
-	_dst.clear();
-	std::copy(_src.begin() + offs.begin, _src.begin() + offs.end, std::back_inserter(_dst));
-
-	return _offset;
-}
-
-
-void ParsePacketBlock(const std::string& _block, PacketInfo& _dst)
-{
-	/*
-	<span id="0x00"></span>
-</p>
-<h3> <span class="mw-headline" id="Keep_Alive_.280x00.29"> Keep Alive (0x00) </span></h3>
-<p><i>Two-Way</i>
-</p><p>The server will frequently send out a keep-alive, each containing a random ID. The client must respond with the same packet.
-The Beta server will disconnect a client if it doesn't receive at least one packet before 1200 in-game ticks, and the Beta client will time out the connection under the same conditions. The client may send packets with Keep-alive ID=0.
-</p>
-<table class="wikitable">
-
-<tr>
-<td> Packet ID
-</td>
-<td> Field Name
-</td>
-<td> Field Type
-</td>
-<td> Example
-</td>
-<td> Notes
-</td></tr>
-<tr>
-<td> 0x00
-</td>
-<td> Keep-alive ID
-</td>
-<td> int
-</td>
-<td> <code>957759560</code>
-</td>
-<td> Server-generated random id
-</td></tr>
-<tr>
-<td> Total Size:
-</td>
-<td colspan="4"> 5 bytes
-</td></tr></table>
-<p><br />
-	*/
-
-	size_t offset = 0;
-	TokenOffsets toffs;
-	int nFields;
-
-	// Packet name
-	// "> Keep Alive00)
-	offset = FindTextBetweenFragments(_block, "\"> ", " (0x", toffs, offset);
-	TokenOffsetsToStr(_block, _dst.packetName, toffs);
-
-	// Packet direction
-	//<p><i>Two-Way</i>
-	offset = FindTextBetweenFragments(_block, "<p><i>", "</i>", toffs, offset);
-	TokenOffsetsToStr(_block, _dst.packetDirection, toffs);
-
-	// Packet comment
-	//</p><p>The server blah blah</p>
-	offset = FindTextBetweenFragments(_block, "</p><p>", "</p>", toffs, offset);
-	TokenOffsetsToStr(_block, _dst.packetComment, toffs);
-
-	// </td></tr>\n<tr>
-	// This combination indicates start of needed data block.
-	offset = _block.find("</td></tr>\n<tr>", offset);
-
-	// Trying to find rowspan, it means this packet has >1 fields.
-	size_t rowspanOff = _block.find("rowspan=", offset);
-	if(rowspanOff != std::string::npos)
-	{
-		std::string nFieldsBuf;
-		TokenOffsets tf;
-		offset = FindTextBetweenFragments(_block, "\"", "\"", tf, rowspanOff);
-		TokenOffsetsToStr(_block, nFieldsBuf, tf);
-
-		nFields = boost::lexical_cast<int>(nFieldsBuf);
-	}
-	else
-	{
-		nFields = 1;
-		offset += 16; // </td></tr>\n<tr>
-	}
-
-	//std::cout << "nFields: " << nFields << std::endl << "offset: " << std::cout << offset << std::endl;
-
-
-	// Packet id
-	// > 0x00\n</td>
-	std::string idbuf;
-	offset = FindTextBetweenFragments(_block, "> 0x", "\n</td>", toffs, offset);
-	TokenOffsetsToStr(_block, idbuf, toffs);
-	_dst.packetId = strtol(idbuf.c_str(), NULL, 16);
-
-	// Further data is: (name, type, example, comment) * nFields
-	// <td> Keep-alive ID
-	// </td>
-	// <td> int
-	// </td>
-	// <td> <code>957759560</code>
-	// </td>
-	// <td> Server-generated random id
-	// </td></tr>
-
-	FieldInfo fi;
-
-	for(int i = 0; i < nFields; ++i)
-	{
-		// Name (needs fixing later)
-		offset = FindTextBetweenFragments(_block, "<td> ", "\n</td>", toffs, offset);
-		TokenOffsetsToStr(_block, fi.name, toffs);
-		// Type
-		offset = FindTextBetweenFragments(_block, "<td> ", "\n</td>", toffs, offset);
-		TokenOffsetsToStr(_block, fi.type, toffs);
-		// Skipping example
-		offset = _block.find("</td>", offset);
-		// Comment
-		offset = FindTextBetweenFragments(_block, "<td> ", "\n</td>", toffs, offset);
-		TokenOffsetsToStr(_block, fi.comment, toffs);
-
-		boost::erase_all(fi.comment, "<code>");
-		boost::erase_all(fi.comment, "</code>");
-
-		_dst.fields.push_back(fi);
-	}
-}
-
-
 // ---- Raw wiki page parsing ----
 
 size_t GetPacketBlock_raw(const std::string& _src, std::string& _dst, size_t _offset)
@@ -226,7 +97,7 @@ size_t GetPacketBlock_raw(const std::string& _src, std::string& _dst, size_t _of
 
 void ParsePacketBlock_raw(const std::string& _block, PacketInfo& _dst)
 {
-	/*{{anchor|0x00}}
+	/****
 	=== Keep Alive (0x00) ===
 	''Two-Way''
 
@@ -249,106 +120,78 @@ void ParsePacketBlock_raw(const std::string& _block, PacketInfo& _dst)
 	|-
 	| Total Size:
 	| colspan="4" | 5 bytes
-	|}*/
+	|}
+	****/
 
-	size_t offset = 0;
-	TokenOffsets toffs;
+	// Clearing PacketInfo
+	_dst.clear();
+
+	// Splitting block into string vector
+	std::vector<std::string> tokenVec;
+	boost::split_regex(tokenVec, _block, boost::regex("(\\n\\|)"));
+
+	// Splitting first line to get code, name etc
+	std::vector<std::string> bufVec;
+	boost::split(bufVec, tokenVec[0], boost::is_any_of("\n"));
+	bufVec.erase(std::remove_if(bufVec.begin(), bufVec.end(), 
+		[](const std::string& _s){ return _s.empty(); }), bufVec.end());
+	bufVec.pop_back(); // removing unneeded line
+
+	// ---- Storing packet comment ----
+	for(int i = 2; i < bufVec.size(); ++i)
+	{
+		bufVec[i] += '\n';
+		_dst.comment += bufVec[i];
+	}
+
+	// ---- Storing packet direction ----
+	std::copy(bufVec[1].begin() + 2, bufVec[1].end() - 2, std::back_inserter(_dst.direction));
+
+	// ---- Getting and storing packet name and code ----
+
+	// === Keep Alive (0x00) ===
+	boost::regex re_nameAndId("=== (.+(?= \\()) \\((.+)\\) ===");
+	boost::smatch match;
+
+	boost::regex_match(bufVec[0], match, re_nameAndId);
+	_dst.name = match[1];
+	_dst.id = match[2];
+
+	// ---- Wiki link ----
+	_dst.wikiLink = "www.wiki.vg/Protocol#" + _dst.id;
+
+	// ---- Fields ----
+
+	// Getting number of fields
+	// Fields start from tokenVec[9]; tokenVec[8] can be parsed to get number of fields.
+
 	int nFields;
 
-	_dst.fields.clear();
-
-	// Packet name
-	// === Keep Alive (0x00) ===
-	offset = FindTextBetweenFragments(_block, "=== ", " (0", toffs, offset);
-	TokenOffsetsToStr(_block, _dst.packetName, toffs);
-
-	// Packet code
-	// x00) ===
-	std::string idbuf;
-	offset = FindTextBetweenFragments(_block, "x", ")", toffs, offset);
-	TokenOffsetsToStr(_block, idbuf, toffs);
-	_dst.packetId = strtol(idbuf.c_str(), NULL, 16);
-
-	// Link to wiki
-	_dst.wikiLink = "http://www.wiki.vg/Protocol#0x" + idbuf;
-
-	// Packet direction
-	// ''Two-Way''
-	offset = FindTextBetweenFragments(_block, "''", "''", toffs, offset);
-	TokenOffsetsToStr(_block, _dst.packetDirection, toffs);
-
-	// Packet comment
-	// \n\nThe server blah blah\n{|
-	offset = FindTextBetweenFragments(_block, "\n\n", "\n{|", toffs, offset);
-	TokenOffsetsToStr(_block, _dst.packetComment, toffs);
-
-	// Notes\n|-
-	// This combination indicates start of needed data block.
-	offset = _block.find("Notes\n|-", offset) + 8;
-
-	// Trying to find rowspan, it means this packet has >1 fields.
-	size_t rowspanOff = _block.find("rowspan=", offset);
-	if(rowspanOff != std::string::npos)
-	{
-		std::string nFieldsBuf;
-		TokenOffsets tf;
-		FindTextBetweenFragments(_block, "\"", "\"", tf, rowspanOff);
-		TokenOffsetsToStr(_block, nFieldsBuf, tf);
-
-		nFields = boost::lexical_cast<int>(nFieldsBuf);
-	}
-	else
+	// Bad fragment, needs to be reviewed.
+	bufVec.clear();
+	// N in rowspan="N" is equal to number of fields; 1 if absent
+	boost::find_all_regex(bufVec, tokenVec[8], boost::regex("rowspan=\"(\\d+)\"")); 
+	if(bufVec.empty())
 		nFields = 1;
+	else
+		nFields = strtol(bufVec[0].c_str() + 9, NULL, 10);
 
-	// Moving to fields
-	offset = _block.find("| 0x") + 6;
+	std::cout << "nFields: " << nFields << std::endl;
 
-	// Further data is: (name, type, example, comment) * nFields
-	// | Keep-alive ID
-	// | int
-	// | <code>957759560</code>
-	// | Server-generated random id
-	// |-
+	// Getting fields
+	FieldInfo fi;
 
-	//FieldInfo fi;
-	//size_t offset2;
-
-	for(int i = 0; i < nFields; ++i)
+	for(int i = 9; i < nFields * 5 + 9; i += 5)
 	{
-		FieldInfo fi; // may be slower, but clears all fields
+		fi.name    = boost::trim_copy(tokenVec[i]);
+		fi.type    = boost::trim_copy(tokenVec[i + 1]);
+		fi.example = boost::trim_copy(tokenVec[i + 2]);
+		fi.comment = boost::trim_copy(tokenVec[i + 3]);
 
-		// Name
-		offset = FindTextBetweenFragments(_block, "| ", "\n", toffs, offset);
-		TokenOffsetsToStr(_block, fi.name, toffs);
-
-		// Type
-		offset = FindTextBetweenFragments(_block, "|", "\n", toffs, offset);
-		if(toffs.begin != toffs.end)
-			TokenOffsetsToStr(_block, fi.type, toffs);
-		else
-			// Type is not specified in wiki.
-			// Needs looking into wiki and fixing manually.
-			fi.type = "Special"; 
-
-		// Example
-		offset = FindTextBetweenFragments(_block, "|", "\n", toffs, offset);
-		if(toffs.begin != toffs.end)
-			TokenOffsetsToStr(_block, fi.example, toffs);
-
-		// Comment
-		offset = FindTextBetweenFragments(_block, "|", "\n", toffs, offset);
-		if(toffs.begin != toffs.end)
-			TokenOffsetsToStr(_block, fi.comment, toffs);
-
-		// Fixing fields
-		boost::erase_all(fi.comment, "<code>");
-		boost::erase_all(fi.comment, "</code>");
 		boost::erase_all(fi.example, "<code>");
 		boost::erase_all(fi.example, "</code>");
-		boost::trim(fi.name);
-		boost::trim(fi.type);
-		boost::trim(fi.example);
-		boost::trim(fi.comment);
+		boost::erase_all(fi.comment, "<code>");
+		boost::erase_all(fi.comment, "</code>");
 
 		_dst.fields.push_back(fi);
 	}
@@ -376,9 +219,9 @@ void DebugPacketsOutput(const std::vector<PacketInfo>& _src, std::ostream& _ostr
 	std::ofstream ofs_packets("packets_out.txt");
 	BOOST_FOREACH(auto &pi, _src)
 	{
-		_ostr	<< "Packet name:      [" << pi.packetName << "]" << std::endl
-				<< "Packet id:        [" << pi.packetId << "] (0x" << std::hex << pi.packetId << ")" << std::dec << std::endl
-				<< "Packet direction: [" << pi.packetDirection << "]" << std::endl
+		_ostr	<< "Packet name:      [" << pi.name << "]" << std::endl
+				<< "Packet id:        [" << pi.id << "] (0x" << std::hex << pi.id << ")" << std::dec << std::endl
+				<< "Packet direction: [" << pi.direction << "]" << std::endl
 				<< "Wiki link:        [" << pi.wikiLink << "]" << std::endl << std::endl
 				<< "Fields (" << pi.fields.size() << "):" << std::endl;
 
@@ -399,10 +242,10 @@ void PacketToJson(const PacketInfo& _src, boost::property_tree::ptree& _packet)
 	_packet.clear();
 
 	// Data
-	_packet.put("id", _src.packetId);
-	_packet.put("name", _src.packetName);
-	_packet.put("direction", _src.packetDirection);
-	_packet.put("comment", _src.packetComment);
+	_packet.put("id", _src.id);
+	_packet.put("name", _src.name);
+	_packet.put("direction", _src.direction);
+	_packet.put("comment", _src.comment);
 	_packet.put("wikilink", _src.wikiLink);
 
 	// Fields
