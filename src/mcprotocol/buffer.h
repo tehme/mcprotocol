@@ -53,7 +53,6 @@ public:
 	class Exception_NotEnoughDataToRead {};
 
 private:
-	// Для начала тут будет просто вектор
 	std::vector<uint8_t> _pf_buffer;
 	size_t _pf_readOffset;
 	size_t _pf_writeOffset;

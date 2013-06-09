@@ -176,9 +176,7 @@ void ParsePacketBlock_raw(const std::string& _block, PacketInfo& _dst)
 	else
 		nFields = strtol(bufVec[0].c_str() + 9, NULL, 10);
 
-	std::cout << "nFields: " << nFields << std::endl;
-
-	// Getting fields
+	// Getting and fixing fields
 	FieldInfo fi;
 
 	for(int i = 9; i < nFields * 5 + 9; i += 5)
@@ -192,6 +190,31 @@ void ParsePacketBlock_raw(const std::string& _block, PacketInfo& _dst)
 		boost::erase_all(fi.example, "</code>");
 		boost::erase_all(fi.comment, "<code>");
 		boost::erase_all(fi.comment, "</code>");
+
+		boost::to_lower(fi.type);
+
+		if(fi.type.empty())
+			fi.type = "special";
+		else // premature optimization?
+		{
+			boost::replace_first(fi.type, "[[slot_data|slot]]", "slot");
+			boost::replace_first(fi.type, "[[entities#entity_metadata_format|metadata]]", "metadata");
+			boost::replace_first(fi.type, "[[object data]]", "object data");
+
+			// boost::replace_all_regex() is better
+			//boost::replace_regex(fi.type, boost::regex("^array of (.*?)s$"), "array:$1");
+			boost::smatch m;
+			// . is bad, needs replacing with more exact expressions
+			if( boost::regex_match(fi.type, m, boost::regex("array of (.*?)s?")) ||
+				boost::regex_match(fi.type, m, boost::regex("(.*?) array")))
+				fi.type = "array:" + m[1];
+			//std::string fmt = "array:$1";
+			//fi.type = boost::regex_replace(fi.type, boost::regex("array of (.*)s"), fmt);
+		}
+		
+		
+		
+		
 
 		_dst.fields.push_back(fi);
 	}
@@ -282,6 +305,44 @@ void PacketsToJson(const std::vector<PacketInfo>& _src, boost::property_tree::pt
 }
 
 
+bool CheckType(const FieldInfo& _fi)
+{
+	// byte short int long float double string Byte array Metadata Object data slot
+	// BAD! Construction on every call
+	static std::vector<std::string> allowedTypes;
+	static bool typesFilled = false;
+	if(!typesFilled)
+	{
+		allowedTypes.push_back("boolean");
+		allowedTypes.push_back("byte");
+		allowedTypes.push_back("unsigned byte");
+		allowedTypes.push_back("short");
+		allowedTypes.push_back("unsigned short");
+		allowedTypes.push_back("int");
+		allowedTypes.push_back("long");
+		allowedTypes.push_back("float");
+		allowedTypes.push_back("double");
+		allowedTypes.push_back("string");
+		//allowedTypes.push_back("byte array");
+		allowedTypes.push_back("metadata");
+		allowedTypes.push_back("object data");
+		allowedTypes.push_back("slot");
+
+		typesFilled = true;
+	}
+
+	// format is array:type
+	bool isArray = (_fi.type.find("array") != std::string::npos);
+
+	//return std::search(allowedTypes.begin(), allowedTypes.end(), _fi.type.begin(), _fi.type.end()) != allowedTypes.end();
+	return std::find(allowedTypes.begin(), allowedTypes.end(), 
+		isArray ? _fi.type.c_str() + 6 : _fi.type) != allowedTypes.end();
+}
+
+
+// ---- Reading from JSON ----
+void ReadJsonField();
+
 
 int main(int argc, char* argv[])
 {
@@ -326,6 +387,17 @@ int main(int argc, char* argv[])
 	std::vector<PacketInfo> packetsInfo;
 
 	ParseRawWikiPage(pagetext, packetsInfo);
+
+	BOOST_FOREACH(auto &pk, packetsInfo)
+		BOOST_FOREACH(auto &fld, pk.fields)
+			if(!CheckType(fld))
+			{
+				std::cout	<< pk.id << " " << pk.name << "\n"
+							<< fld.name << ": type is [" << fld.type << "]" << std::endl << std::endl;
+			}
+
+	system("pause");
+	return 0;
 
 	// Debug output
 	//std::ofstream ofs_packets("packets_out.txt");
